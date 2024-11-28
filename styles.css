@@ -1,0 +1,548 @@
+@font-face {
+    font-family: 'pixel';
+    src: url("resources/font/fusion_pixel.woff2");
+}
+
+@font-face {
+    font-family: 'high-pixel';
+    src: url("resources/font/Minecraft_AE.ttf");
+}
+
+@font-face {
+    font-family: 'en-pixel';
+    src: url("resources/font/enPixel.ttf");
+}
+
+:root {
+    --SIZE: 10;
+}
+
+body {
+    background-image: url(resources/img/XinduWholeScene.jpg);
+    background-size: cover;
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+* {
+    user-select: none;
+    padding: 0;
+    margin: 0;
+    font-family: 'pixel', sans-serif;
+}
+
+.menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: fit-content;
+    height: fit-content;
+    padding: 48px 96px;
+    background-color: rgba(55, 81, 95, 0.4);
+    box-shadow: 0 0px 8px rgba(190, 190, 190, 0.2);
+    animation: floatingMenu 1s ease-in-out infinite;
+}
+
+.winner-name {
+    color: white;
+    animation: goldTitle 1s infinite;
+}
+
+@keyframes goldTitle {
+    0% {
+        text-shadow: 0 0 0 #ffd700;
+    }
+
+    50% {
+        text-shadow: 0 0 8px #ffd700;
+    }
+
+    100% {
+        text-shadow: 0 0 0 #ffd700;
+    }
+}
+
+@keyframes floatingMenu {
+    0% {
+        transform: translateY(0);
+        background-color: rgba(55, 81, 95, 0.4);
+    }
+
+    50% {
+        transform: translateY(-10px);
+        background-color: rgba(55, 81, 95, 0.6);
+    }
+
+    100% {
+        transform: translateY(0);
+        background-color: rgba(55, 81, 95, 0.4);
+    }
+}
+
+.settings-menu {
+    display: none;
+    color: #fff;
+}
+
+.settings-menu input[type="text"] {
+    height: 1.1rem;
+    padding: 0 12px;
+    outline: none;
+}
+
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: -1;
+}
+
+.starting {
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    width: 100vw;
+    background-color: #000;
+    z-index: 999;
+}
+
+.starting * {
+    display: none;
+}
+
+.start-menu h1 {
+    font-family: 仿宋;
+    background-image: url(resources/img/Invicon_Water.webp);
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow: none;
+    font-size: 5rem;
+}
+
+.menu-button {
+    padding: 10px 50px;
+    font-size: 1em;
+    color: #fff;
+    background-color: rgba(70, 130, 180, 0.8);
+    /* 略微透明的蓝色 */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    outline: none;
+    margin: 6px 0;
+}
+
+.menu-button:hover {
+    background-color: rgba(60, 120, 170, 0.8);
+    /* 略微透明的深蓝色 */
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(70, 130, 180, 0.8);
+    /* 略微透明的蓝色 */
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .menu-button {
+        padding: 8px 16px;
+        font-size: 0.8em;
+    }
+}
+
+.container {
+    position: absolute;
+    bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #4c6aaf;
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4),
+        0px 7px 13px -3px rgba(0, 0, 0, 0.3),
+        0px -4px 0px 0px rgba(0, 0, 0, 0.2) inset;
+}
+
+.tnt {
+    position: relative;
+    top: -2px;
+}
+
+.left .tnt {
+    left: -14px;
+}
+
+.right .tnt {
+    right: -14px;
+}
+
+.tnt img {
+    width: 35px;
+}
+
+.tnt::after {
+    content: attr(data-number);
+    position: absolute;
+    top: 20px;
+    right: 0px;
+    color: white;
+    border-radius: 5px;
+}
+
+.team-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.team-name {
+    font-size: 1.2em;
+    margin: 12px 0;
+}
+
+.ship-health {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.ship {
+    height: 30px;
+    width: 40px;
+    margin: 0 10px;
+}
+
+.health {
+    display: flex;
+    margin-left: 5px;
+}
+
+.health img {
+    width: 20px;
+    height: 20px;
+    margin-right: 2px;
+    image-rendering: pixelated;
+}
+
+.game-title {
+    text-align: center;
+    flex-grow: 1;
+}
+
+h1 {
+    font-size: 4em;
+    text-shadow: 0px 1px 0px #c0c0c0,
+        0px 2px 0px #b0b0b0,
+        0px 3px 0px #a0a0a0,
+        0px 4px 0px #909090,
+        0px 5px 10px rgba(0, 0, 0, .4);
+    margin-bottom: 10px;
+}
+
+.game-title small {
+    color: #ccc;
+}
+
+.left .health {
+    margin-left: 0;
+    margin-right: 5px;
+}
+
+.right .health {
+    flex-direction: row-reverse;
+    margin-left: 5px;
+    margin-right: 0;
+}
+
+.right .health img {
+    margin-right: 0;
+    margin-left: 2px;
+}
+
+.game-board {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.6);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(var(--SIZE), 60px);
+    grid-gap: 0;
+}
+
+.left-panel,
+.right-panel {
+    grid-template-rows: repeat(var(--SIZE), 60px);
+}
+
+.middle-panel {
+    grid-template-columns: repeat(4, 60px);
+}
+
+.square {
+    width: 60px;
+    height: 60px;
+    background-image: url('resources/img/Invicon_Water.webp');
+}
+
+.selected-square {
+    filter: opacity(0.5);
+}
+
+
+.health {
+    width: 20px;
+    height: 20px;
+    background-size: cover;
+    margin-left: 5px;
+}
+
+.quiz-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: fixed;
+    top: 0px;
+    left: 0;
+    right: 0;
+    background-color: #f7f7f799;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    padding: 20px;
+    border-radius: 0 0 12px 12px;
+    transition: height 0.8s ease, opacity 1s ease, transform 0.8s ease-in-out;
+}
+
+.player-panel {
+    flex-basis: 20%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.panel-header {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
+
+.player-choices {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 20px;
+    row-gap: 8px;
+    width: 100%;
+}
+
+.choice {
+    background-color: #ffffff90;
+    color: #333;
+    padding: 10px 20px;
+    margin: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    flex-grow: 1;
+    text-align: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.choice:hover {
+    background-color: #ffffffee;
+}
+
+.choice.correct {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.choice.wrong {
+    background-color: #f44336;
+    color: white;
+}
+
+.choice.correct-not-selected {
+    background-color: #53ff9a;
+    color: #888;
+}
+
+.question-panel {
+    flex-basis: 60%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#question-content {
+    font-family: 'en-pixel', 'high-pixel', sans-serif;
+    font-weight: bold;
+    font-size: 2em;
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+#question-choices {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    column-gap: 20px;
+    row-gap: 8px;
+    margin-bottom: 20px;
+}
+
+.choice-content {
+    font-family: 'en-pixel', 'high-pixel', sans-serif;
+    font-weight: bold;
+    font-size: 1.5em;
+}
+
+.skip-button {
+    background-color: #f44336;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.skip-button:hover {
+    background-color: #e53935;
+}
+
+.next-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.next-button:hover {
+    background-color: #45a049;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .quiz-area {
+        flex-wrap: wrap;
+        padding: 10px;
+    }
+
+    .player-panel {
+        flex-basis: 100%;
+    }
+
+    .question-panel {
+        flex-basis: 100%;
+    }
+
+    .panel-header {
+        font-size: 1em;
+    }
+
+    .choice {
+        padding: 8px 16px;
+    }
+
+    #question-content {
+        font-size: 1.5em;
+    }
+
+    .skip-button {
+        padding: 8px 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: repeat(7, 40px);
+    }
+
+    .left-panel,
+    .right-panel {
+        grid-template-rows: repeat(7, 40px);
+    }
+
+    .middle-panel {
+        grid-template-columns: repeat(10, 40px);
+        grid-template-rows: repeat(10, 40px);
+    }
+
+    .status-bar {
+        font-size: 0.8em;
+    }
+}
+
+.game-over {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    margin: auto;
+    padding: 64px;
+    display: none;
+    color: #333;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: fit-content;
+    width: fit-content;
+    background-color: #eeeeee99;
+    z-index: 1001;
+    animation: goldPanel 1s infinite;
+}
+
+@keyframes goldPanel {
+    0% {
+        box-shadow: 0 0 0 #ffd700;
+    }
+
+    50% {
+        box-shadow: 0 0 8px #ffd700;
+    }
+
+    100% {
+        box-shadow: 0 0 0 #ffd700;
+    }
+}
+
+.game-over>* {
+    font-family: high-pixel, sans-serif;
+    text-align: center;
+}

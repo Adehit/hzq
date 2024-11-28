@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>海战棋配置生成</title>
+    <style>
+        :root {
+            --SIZE: 10;
+        }
+
+        @font-face {
+            font-family: 'pixel';
+            src: url("resources/font/fusion_pixel.woff2");
+        }
+
+        * {
+            user-select: none;
+            font-family: pixel, Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(var(--SIZE), 40px);
+            grid-template-rows: repeat(var(--SIZE), 40px);
+            gap: 5px;
+        }
+
+        .cell {
+            background-color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 16px;
+            color: #333;
+            border-radius: 8px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* 为不同数字的格子赋予不同的颜色 */
+        .value-0 {
+            background-color: #e0e0e0;
+        }
+
+        .value-1 {
+            background-color: #ffcccc;
+        }
+
+        .value-2 {
+            background-color: #ccffcc;
+        }
+
+        .value-3 {
+            background-color: #ccccff;
+        }
+    </style>
+</head>
+
+<body>
+    <h2 style="text-align: center; margin-bottom: 20px;">《海战棋》舰队布局配置文件生成器</h2>
+    <div id="grid" class="grid"></div>
+    <button onclick="generateJSON()">生成JSON</button>
+    <script>
+        const SIZE = 10;
+        let array = new Array(SIZE * SIZE).fill(0);
+
+        // 创建网格并填充单元格
+        const grid = document.getElementById('grid');
+        for (let i = 0; i < SIZE * SIZE; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.innerText = array[i];
+            cell.onclick = function () {
+                // 点击单元格时，改变数组的值并更新显示
+                const newValue = (array[i] + 1) % 4; // 0, 1, 2, 3循环
+                array[i] = newValue;
+                cell.innerText = newValue;
+                cell.className = 'cell value-' + newValue; // 根据值赋予不同的类
+            };
+            grid.appendChild(cell);
+        }
+
+        function generateJSON() {
+            // 生成JSON字符串
+            const jsonString = JSON.stringify(array);
+            console.log(jsonString); // 在控制台打印JSON字符串
+
+            // 提示用户下载JSON文件
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'array.json';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>
