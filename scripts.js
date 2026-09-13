@@ -1,4 +1,8 @@
 const SIZE = 10;
+const EVENT_TITLE = '莆田第一中学第一届3099知识竞赛决赛';
+const CREDITS_DEV = 'Dev: [Github] Adehit';
+const CREDITS_ARTIST = 'Artist: Mojang';
+const CREDITS_ACK = 'Acknowledgement: Linrui, Wuyinan';
 
 function isValidMap(map) {
     if (!Array.isArray(map) || map.length !== SIZE * SIZE) return false;
@@ -42,6 +46,8 @@ var lastAnswerSnapshot = null;
 var lastAnswerPanel = null;
 var lastAnswerChoice = null;
 var isQuizAreaVisible = true;
+var gameEnded = false;
+var winnerName = '';
 var healths = [[1, 2, 3], [1, 2, 3]];
 const audioPool = new AudioPool(['resources/audio/Water_splash.ogg',
     'resources/audio/Explosion.ogg',
@@ -52,20 +58,21 @@ const audioPool = new AudioPool(['resources/audio/Water_splash.ogg',
 
 function isOver() {
     // 判断游戏是否结束
-    let isOver = false;
-    let winnerName = '';
+    if (gameEnded) { return true; }
     if (healths[0].every(item => item <= 0)) {
-        isOver = true;
+        gameEnded = true;
         winnerName = _name2;
     } else if (healths[1].every(item => item <= 0)) {
-        isOver = true;
+        gameEnded = true;
         winnerName = _name1;
     }
-    if (isOver) {
-        setTimeout(() => {
-            Winner(winnerName);
-        }, 2000);
+    if (gameEnded) {
+        canAnswer = false;
+        lastAnswerSnapshot = null;
+        updateRoundDisplay();
+        saveAllData();
     }
+    return gameEnded;
 }
 
 function generateQuestion() {
@@ -128,7 +135,9 @@ function saveAllData() {
         canAnswer: canAnswer,
         lastAnswerSnapshot: lastAnswerSnapshot,
         lastAnswerPanel: lastAnswerPanel,
-        lastAnswerChoice: lastAnswerChoice
+        lastAnswerChoice: lastAnswerChoice,
+        gameEnded: gameEnded,
+        winnerName: winnerName
     };
     localStorage.setItem('quizData', JSON.stringify(data));
 }
@@ -151,7 +160,11 @@ function loadAllData() {
         lastAnswerSnapshot = parsedData.lastAnswerSnapshot || null;
         lastAnswerPanel = parsedData.lastAnswerPanel || null;
         lastAnswerChoice = parsedData.lastAnswerChoice || null;
-        if (parsedData.canAnswer !== undefined) {
+        gameEnded = !!parsedData.gameEnded;
+        winnerName = parsedData.winnerName || '';
+        if (gameEnded) {
+            canAnswer = false;
+        } else if (parsedData.canAnswer !== undefined) {
             canAnswer = parsedData.canAnswer;
         } else {
             canAnswer = !lastAnswerChoice;
@@ -215,6 +228,7 @@ function clearAllData() {
 }
 
 function chooseAnswer(ele, panel) {
+    if (gameEnded) { return; }
     if (!ele.dataset.choice || _currentQuestionIndex === -1 || _currentQuestionIndex >= _problems.length) { return; }
     if (canAnswer) {
         lastAnswerSnapshot = {
@@ -290,6 +304,7 @@ function updateBulletsDisplay() {
 }
 
 function nextQuestion() {
+    if (gameEnded) { return; }
     if (_currentQuestionIndex >= _problems.length) {
         canAnswer = false;
         cocoMessage.warning("题库的题目已经全部问完。");
@@ -308,6 +323,7 @@ function nextQuestion() {
 }
 
 function skipQuestion() {
+    if (gameEnded) { return; }
     if (_currentQuestionIndex === -1) {
         cocoMessage.warning("还没有开始答题！");
         return;
@@ -324,23 +340,35 @@ function updateOptions(question) {
 //通过键盘实现fire()开火，先按下A/B选择面板，再按下横纵向坐标
 var nowChoosePanel = '';
 var nowChoosePos = [-1, -1];
+function refreshMaps() {
+    updateMapDisplay('left-panel');
+    updateMapDisplay('right-panel');
+    const name1 = document.querySelector('.status-bar .team-name1');
+    const name2 = document.querySelector('.status-bar .team-name2');
+    if (name1) { name1.classList.toggle('team-selected', nowChoosePanel === 'A'); }
+    if (name2) { name2.classList.toggle('team-selected', nowChoosePanel === 'B'); }
+}
 document.onkeydown = function (event) {
     if (event.target && (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable)) {
         return;
     }
     if (event.key === 'a' || event.key === 'A') {
         nowChoosePanel = 'A';
+        nowChoosePos = [-1, -1];
+        refreshMaps();
     } else if (event.key === 'b' || event.key === 'B') {
         nowChoosePanel = 'B';
+        nowChoosePos = [-1, -1];
+        refreshMaps();
     } else if ((event.key <= '9' && event.key >= '1') || event.key === '0') {
+        if (nowChoosePanel === '') { return; }
         const pos = event.key === '0' ? 9 : parseInt(event.key) - 1;
         if (nowChoosePos[0] === -1) {
             nowChoosePos[0] = pos;
         } else {
             nowChoosePos[1] = pos;
         }
-        updateMapDisplay('left-panel');
-        updateMapDisplay('right-panel');
+        refreshMaps();
     } else if (event.key === 'Enter') {
         if (nowChoosePos[0] >= 0 && nowChoosePos[1] >= 0 && nowChoosePanel != '') {
             const panel = nowChoosePanel === 'A' ? 'left-panel' : 'right-panel';
@@ -349,16 +377,26 @@ document.onkeydown = function (event) {
             fire(panel, x, y);
             nowChoosePos = [-1, -1];
             nowChoosePanel = '';
+            refreshMaps();
         }
     } else if (event.key === 'Backspace') {
-        nowChoosePos = [-1, -1];
-        nowChoosePanel = '';
-        updateMapDisplay('left-panel');
-        updateMapDisplay('right-panel');
+        if (nowChoosePos[1] !== -1) {
+            nowChoosePos[1] = -1;
+        } else if (nowChoosePos[0] !== -1) {
+            nowChoosePos[0] = -1;
+        } else {
+            nowChoosePanel = '';
+        }
+        refreshMaps();
     }
 }
 
 //开火
+function settleGame() {
+    if (!gameEnded) { return; }
+    Winner(winnerName);
+}
+
 function fire(panel, x, y) {
     const isLeftPanel = panel === 'left-panel';
     let mapData, opponentName, selfName;
@@ -400,12 +438,21 @@ function fire(panel, x, y) {
     nowChoosePos = [-1, -1];
     updateHealthDisplay();
     updateBulletsDisplay();
-    updateMapDisplay(panel);
+    refreshMaps();
     saveAllData();
 }
 
 // 更新轮数显示
 function updateRoundDisplay() {
+    const roundInfo = document.querySelector('.round-info');
+    const settleBtn = document.querySelector('.settle-button');
+    if (gameEnded) {
+        if (roundInfo) { roundInfo.style.display = 'none'; }
+        if (settleBtn) { settleBtn.style.display = 'inline-block'; }
+        return;
+    }
+    if (roundInfo) { roundInfo.style.display = ''; }
+    if (settleBtn) { settleBtn.style.display = 'none'; }
     $(".round-number").text(`${parseInt(answeredCnt === -1 ? 0 : answeredCnt / 5 + 1)}`);
     $(".round-inside-cnt").text(answeredCnt === -1 ? 0 : answeredCnt % 5 + 1);
     $(".remaining-cnt").text(Math.max(0, _problems.length - Math.max(_currentQuestionIndex, 0)));
@@ -434,6 +481,7 @@ function updateMapDisplay(panel) {
     }
 
     const grid = document.querySelector(`.${panel}`);
+    const isThisPanel = nowChoosePanel === (panel === 'left-panel' ? 'A' : 'B');
     for (let i = 0; i < SIZE * SIZE; i++) {
         const square = grid.children[i];
         if ([0, 1, 2, 3].includes(mapData[i])) {
@@ -453,10 +501,14 @@ function updateMapDisplay(panel) {
         } else {
             square.src = 'resources/img/cloud.png';
         }
-        if (nowChoosePanel === (panel === 'left-panel' ? 'A' : 'B') && i % SIZE === nowChoosePos[0] && parseInt(i / SIZE) === nowChoosePos[1]) {
+        const x = i % SIZE;
+        const y = parseInt(i / SIZE);
+        square.classList.remove('selected-square', 'selected-col');
+        if (!isThisPanel) { continue; }
+        if (nowChoosePos[0] >= 0 && nowChoosePos[1] >= 0 && x === nowChoosePos[0] && y === nowChoosePos[1]) {
             square.classList.add('selected-square');
-        } else {
-            square.classList.remove('selected-square');
+        } else if (nowChoosePos[0] >= 0 && nowChoosePos[1] === -1 && x === nowChoosePos[0]) {
+            square.classList.add('selected-col');
         }
     }
 }
@@ -585,6 +637,11 @@ function init() {
     statusBar.style.width = `${gameBoard.clientWidth}px`;
     cocoMessage.config({ duration: 1000 })
     document.oncontextmenu = (e) => e.preventDefault();
+    const eventTitle = document.getElementById('event-title');
+    if (eventTitle) { eventTitle.textContent = EVENT_TITLE; }
+    document.querySelectorAll('.credit-dev').forEach(function (el) { el.textContent = CREDITS_DEV; });
+    document.querySelectorAll('.credit-artist').forEach(function (el) { el.textContent = CREDITS_ARTIST; });
+    document.querySelectorAll('.credit-ack').forEach(function (el) { el.textContent = CREDITS_ACK; });
 }
 
 function generateLeftRightGrid() {

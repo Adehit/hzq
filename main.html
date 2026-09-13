@@ -50,11 +50,14 @@
             </div>
             <div class="game-title">
                 <h1>海 战 棋</h1>
-                <small>Dev: [Github] Adehit</small><br />
-                <small>Artist: Minecraft</small><br />
-                <small>Acknowledgement: Linrui</small><br /><br />
-                <b class="round-line">第 <span class="round-number"></span> 轮 （<span class="round-inside-cnt"></span>/5）</b>
-                <div class="remaining-hint">剩余 <span class="remaining-cnt">0</span> 题</div>
+                <small class="credit-dev"></small><br />
+                <small class="credit-artist"></small><br />
+                <small class="credit-ack"></small><br /><br />
+                <div class="round-info">
+                    <b class="round-line">第 <span class="round-number"></span> 轮 （<span class="round-inside-cnt"></span>/5）</b>
+                    <div class="remaining-hint">剩余 <span class="remaining-cnt">0</span> 题</div>
+                </div>
+                <button class="settle-button" onclick="settleGame()">结算</button>
             </div>
             <div class="team-info right">
                 <span class="team-name2 team-name"></span>
@@ -107,7 +110,7 @@
             </div>
             <div>
                 <button class="next-button"
-                    onclick="if(!canAnswer || _currentQuestionIndex === -1) { nextQuestion(); } else{ cocoMessage.warning('该题还未作答') } ">下一题</button>
+                    onclick="if(gameEnded) { return; } if(!canAnswer || _currentQuestionIndex === -1) { nextQuestion(); } else{ cocoMessage.warning('该题还未作答') } ">下一题</button>
                 <button class="skip-button" onclick="if(canAnswer) { skipQuestion(); } ">这题太难了？跳过</button>
             </div>
         </div>
@@ -128,10 +131,10 @@
     </div>
     <div class="overlay"></div>
     <div class="starting">
-        <h1 style="color:#fff;">莆田第一中学第一届3099知识竞赛决赛</h1><br /><br />
-        <small style="color:#ccc;">Dev: [Github] Adehit</small><br />
-        <small style="color:#ccc;">Artist: Minecraft</small><br />
-        <small style="color:#ccc;">Acknowledgement: Linrui</small>
+        <h1 id="event-title" style="color:#fff;"></h1><br /><br />
+        <small class="credit-dev" style="color:#ccc;"></small><br />
+        <small class="credit-artist" style="color:#ccc;"></small><br />
+        <small class="credit-ack" style="color:#ccc;"></small>
     </div>
     <script src="plugins/coco-message.js"></script>
     <script src="plugins/jquery.min.js"></script>
