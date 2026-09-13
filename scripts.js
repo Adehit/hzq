@@ -1,5 +1,31 @@
 const SIZE = 10;
 
+function isValidMap(map) {
+    if (!Array.isArray(map) || map.length !== SIZE * SIZE) return false;
+    let c1 = 0, c2 = 0, c3 = 0;
+    for (let i = 0; i < map.length; i++) {
+        if (map[i] === 1) c1++;
+        else if (map[i] === 2) c2++;
+        else if (map[i] === 3) c3++;
+    }
+    return c1 === 1 && c2 === 2 && c3 === 3;
+}
+
+function readJsonFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            try {
+                resolve(JSON.parse(event.target.result));
+            } catch (e) {
+                reject(e);
+            }
+        };
+        reader.onerror = reject;
+        reader.readAsText(file);
+    });
+}
+
 var _problems = [];
 var _map1 = [];
 var _map2 = [];
@@ -12,9 +38,12 @@ var _bullets2 = 0;
 var _currentQuestionIndex = -1;
 var answeredCnt = -1;
 var canAnswer = true;
+var lastAnswerSnapshot = null;
+var lastAnswerPanel = null;
+var lastAnswerChoice = null;
 var isQuizAreaVisible = true;
 var healths = [[1, 2, 3], [1, 2, 3]];
-const audioPool = new AudioPool(['resources/audio/Water_Splash.ogg',
+const audioPool = new AudioPool(['resources/audio/Water_splash.ogg',
     'resources/audio/Explosion.ogg',
     'resources/audio/correct.mp3',
     'resources/audio/wrong.mp3',
@@ -22,12 +51,13 @@ const audioPool = new AudioPool(['resources/audio/Water_Splash.ogg',
     'resources/audio/Winner_Kun.mp3',]);
 
 function isOver() {
+    // 判断游戏是否结束
     let isOver = false;
     let winnerName = '';
-    if (healths[0].every(item => item === 0)) {
+    if (healths[0].every(item => item <= 0)) {
         isOver = true;
         winnerName = _name2;
-    } else if (healths[1].every(item => item === 0)) {
+    } else if (healths[1].every(item => item <= 0)) {
         isOver = true;
         winnerName = _name1;
     }
@@ -38,27 +68,29 @@ function isOver() {
     }
 }
 
-function updateBulletsDisplay() {
-    document.getElementById('bullets1').dataset.number = _bullets1;
-    document.getElementById('bullets2').dataset.number = _bullets2;
-}
-
 function generateQuestion() {
+    // 下一题
     if (_problems.length === 0) {
+        canAnswer = false;
         cocoMessage.error("题库中没有题目！");
+        updateRoundDisplay();
         return;
     }
     if (_currentQuestionIndex >= _problems.length) {
+        canAnswer = false;
         cocoMessage.warning("题库的题目已经全部问完。");
+        updateRoundDisplay();
         return;
     }
     const question = _problems[_currentQuestionIndex];
     document.getElementById('question-content').innerHTML = formatQuestion(question.content);
     funTransitionHeight(document.querySelector('.quiz-area'));
     updateOptions(question);
+    updateRoundDisplay();
 }
 
 function formatQuestion(content) {
+    // 处理问题中的转义
     const highPixel = '<span style="font-family:\'high-pixel\';">$&</span>';
     const escapeChar = {
         '&': '&amp;',
@@ -73,9 +105,10 @@ function formatQuestion(content) {
 }
 
 function shuffleQuestions() {
+    // 打乱题库顺序
     for (let i = _problems.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [_problems[i], _problems[j]] = [_problems[j], _problems[i]]; // 交换元素
+        [_problems[i], _problems[j]] = [_problems[j], _problems[i]];
     }
 }
 
@@ -91,7 +124,11 @@ function saveAllData() {
         problems: _problems,
         currentQuestionIndex: _currentQuestionIndex,
         continue_error: continue_error,
-        answeredCnt: answeredCnt
+        answeredCnt: answeredCnt,
+        canAnswer: canAnswer,
+        lastAnswerSnapshot: lastAnswerSnapshot,
+        lastAnswerPanel: lastAnswerPanel,
+        lastAnswerChoice: lastAnswerChoice
     };
     localStorage.setItem('quizData', JSON.stringify(data));
 }
@@ -111,6 +148,14 @@ function loadAllData() {
         _currentQuestionIndex = parsedData.currentQuestionIndex;
         continue_error = parsedData.continue_error;
         answeredCnt = parsedData.answeredCnt;
+        lastAnswerSnapshot = parsedData.lastAnswerSnapshot || null;
+        lastAnswerPanel = parsedData.lastAnswerPanel || null;
+        lastAnswerChoice = parsedData.lastAnswerChoice || null;
+        if (parsedData.canAnswer !== undefined) {
+            canAnswer = parsedData.canAnswer;
+        } else {
+            canAnswer = !lastAnswerChoice;
+        }
         return true;
     } else {
         return false;
@@ -131,8 +176,6 @@ function startGameLocally() {
     $(".team-name1").text(_name1);
     $(".team-name2").text(_name2);
     updateRoundDisplay();
-    $("#question-content").text("继续答题");
-    $(".choice-content").text("继续答题");
     setTimeout(() => {
         $(".starting").children().fadeIn(1000);
     }, 500);
@@ -152,7 +195,10 @@ function startGameLocally() {
         updateHealthDisplay();
         updateMapDisplay('left-panel');
         updateMapDisplay('right-panel');
-        canAnswer = false;
+        if (_currentQuestionIndex >= 0) {
+            generateQuestion();
+            restoreAnswerVisual();
+        }
     }, 5000);
     setTimeout(() => {
         document.querySelector("body").oncontextmenu = e => {
@@ -169,8 +215,23 @@ function clearAllData() {
 }
 
 function chooseAnswer(ele, panel) {
-    if (!canAnswer || !ele.dataset.choice || _currentQuestionIndex === -1) { return; }
-    canAnswer = false;
+    if (!ele.dataset.choice || _currentQuestionIndex === -1 || _currentQuestionIndex >= _problems.length) { return; }
+    if (canAnswer) {
+        lastAnswerSnapshot = {
+            bullets1: _bullets1,
+            bullets2: _bullets2,
+            continue_error: continue_error.slice()
+        };
+        canAnswer = false;
+    } else if (lastAnswerSnapshot) {
+        _bullets1 = lastAnswerSnapshot.bullets1;
+        _bullets2 = lastAnswerSnapshot.bullets2;
+        continue_error = lastAnswerSnapshot.continue_error.slice();
+        answeredCnt--;
+        $(".choice").removeClass('correct wrong correct-not-selected');
+    } else {
+        return;
+    }
     const question = _problems[_currentQuestionIndex];
     const _name = panel === 'left-panel' ? _name1 : _name2;
     const _opponentName = panel === 'left-panel' ? _name2 : _name1;
@@ -201,14 +262,44 @@ function chooseAnswer(ele, panel) {
         ele.classList.add('wrong');
         $(`.choice[data-choice="${question.ans}"]`).addClass('correct-not-selected');
     }
+    lastAnswerPanel = panel;
+    lastAnswerChoice = ele.dataset.choice;
     answeredCnt++;
     updateBulletsDisplay();
     updateRoundDisplay();
     saveAllData();
 }
 
+function restoreAnswerVisual() {
+    if (canAnswer || !lastAnswerChoice || !lastAnswerPanel) { return; }
+    if (_currentQuestionIndex < 0 || _currentQuestionIndex >= _problems.length) { return; }
+    const question = _problems[_currentQuestionIndex];
+    const ele = document.querySelector(`.player-panel.${lastAnswerPanel} .choice[data-choice="${lastAnswerChoice}"]`);
+    if (!ele) { return; }
+    if (lastAnswerChoice === question.ans) {
+        ele.classList.add('correct');
+    } else {
+        ele.classList.add('wrong');
+        $(`.choice[data-choice="${question.ans}"]`).addClass('correct-not-selected');
+    }
+}
+
+function updateBulletsDisplay() {
+    document.getElementById('bullets1').dataset.number = _bullets1;
+    document.getElementById('bullets2').dataset.number = _bullets2;
+}
+
 function nextQuestion() {
+    if (_currentQuestionIndex >= _problems.length) {
+        canAnswer = false;
+        cocoMessage.warning("题库的题目已经全部问完。");
+        updateRoundDisplay();
+        return;
+    }
     canAnswer = true;
+    lastAnswerSnapshot = null;
+    lastAnswerPanel = null;
+    lastAnswerChoice = null;
     $(".choice").each(function () {
         $(this).removeClass('correct wrong correct-not-selected');
     });
@@ -234,15 +325,19 @@ function updateOptions(question) {
 var nowChoosePanel = '';
 var nowChoosePos = [-1, -1];
 document.onkeydown = function (event) {
+    if (event.target && (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable)) {
+        return;
+    }
     if (event.key === 'a' || event.key === 'A') {
         nowChoosePanel = 'A';
     } else if (event.key === 'b' || event.key === 'B') {
         nowChoosePanel = 'B';
-    } else if (event.key <= '9' && event.key >= '1') {
+    } else if ((event.key <= '9' && event.key >= '1') || event.key === '0') {
+        const pos = event.key === '0' ? 9 : parseInt(event.key) - 1;
         if (nowChoosePos[0] === -1) {
-            nowChoosePos[0] = parseInt(event.key) - 1;
+            nowChoosePos[0] = pos;
         } else {
-            nowChoosePos[1] = parseInt(event.key) - 1;
+            nowChoosePos[1] = pos;
         }
         updateMapDisplay('left-panel');
         updateMapDisplay('right-panel');
@@ -284,9 +379,13 @@ function fire(panel, x, y) {
 
     const width = SIZE;
     const index = parseInt(y) * width + parseInt(x);
+    if (![0, 1, 2, 3].includes(mapData[index])) {
+        cocoMessage.warning(`【${selfName}】该位置已经开过火了！`);
+        return;
+    }
     if (isLeftPanel) { _bullets2--; } else { _bullets1--; }
     if (mapData[index] === 0) {
-        audioPool.playSound("resources/audio/Water_Splash.ogg");
+        audioPool.playSound("resources/audio/Water_splash.ogg");
         cocoMessage.info(`【${selfName}】的炮弹没有击中任何东西！`);
         mapData[index] = -7;
     } else if (mapData[index] === 1 || mapData[index] === 2 || mapData[index] === 3) {
@@ -309,6 +408,7 @@ function fire(panel, x, y) {
 function updateRoundDisplay() {
     $(".round-number").text(`${parseInt(answeredCnt === -1 ? 0 : answeredCnt / 5 + 1)}`);
     $(".round-inside-cnt").text(answeredCnt === -1 ? 0 : answeredCnt % 5 + 1);
+    $(".remaining-cnt").text(Math.max(0, _problems.length - Math.max(_currentQuestionIndex, 0)));
 }
 
 // 更新血量显示
@@ -401,41 +501,30 @@ function closeSettings() {
 }
 
 function saveSettings() {
-    let saveSuccess = true;
-    _name1 = document.querySelector('#name1').value;
-    _name2 = document.querySelector('#name2').value;
-    if (_name1 == "" || _name2 == "") { saveSuccess = false; cocoMessage.warning("双方队名未成功配置！"); }
-    const file = document.querySelector("#quiz-input").files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.readAsText(file);
-        reader.onload = function (event) {
-            const data = JSON.parse(event.target.result);
-            _problems = data;
-        };
-    } else { cocoMessage.warning("题库文件未成功读取！"); saveSuccess = false; }
-    const file2 = document.querySelector("#map1-input").files[0];
-    if (file2) {
-        const reader2 = new FileReader();
-        reader2.readAsText(file2);
-        reader2.onload = function (event) {
-            const data = JSON.parse(event.target.result);
-            _map1 = data;
-        };
-    } else { cocoMessage.warning("舰队布局 1 未成功读取！"); saveSuccess = false; }
-    const file3 = document.querySelector("#map2-input").files[0];
-    if (file3) {
-        const reader3 = new FileReader();
-        reader3.readAsText(file3);
-        reader3.onload = function (event) {
-            const data = JSON.parse(event.target.result);
-            _map2 = data;
-        };
-    } else { cocoMessage.warning("舰队布局 2 未成功读取！"); saveSuccess = false; }
-    if (saveSuccess) {
+    const name1 = document.querySelector('#name1').value;
+    const name2 = document.querySelector('#name2').value;
+    const quizFile = document.querySelector("#quiz-input").files[0];
+    const map1File = document.querySelector("#map1-input").files[0];
+    const map2File = document.querySelector("#map2-input").files[0];
+    if (name1 == "" || name2 == "") { cocoMessage.warning("双方队名未成功配置！"); return; }
+    if (!quizFile) { cocoMessage.warning("题库文件未成功读取！"); return; }
+    if (!map1File) { cocoMessage.warning("舰队布局 1 未成功读取！"); return; }
+    if (!map2File) { cocoMessage.warning("舰队布局 2 未成功读取！"); return; }
+    Promise.all([readJsonFile(quizFile), readJsonFile(map1File), readJsonFile(map2File)]).then(function (data) {
+        if (!Array.isArray(data[0]) || !isValidMap(data[1]) || !isValidMap(data[2])) {
+            cocoMessage.error("文件格式不正确");
+            return;
+        }
+        _name1 = name1;
+        _name2 = name2;
+        _problems = data[0];
+        _map1 = data[1];
+        _map2 = data[2];
         cocoMessage.success("配置成功！");
-    }
-    closeSettings();
+        closeSettings();
+    }).catch(function () {
+        cocoMessage.error("文件格式不正确");
+    });
 }
 
 function startGame() {
@@ -447,6 +536,9 @@ function startGame() {
         return;
     } else if (_map1.length == 0 || _map2.length == 0) {
         cocoMessage.error("还未配置双方舰队布局");
+        return;
+    } else if (!isValidMap(_map1) || !isValidMap(_map2)) {
+        cocoMessage.error("文件格式不正确");
         return;
     }
     shuffleQuestions();
