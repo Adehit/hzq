@@ -57,6 +57,18 @@ const audioPool = new AudioPool(['resources/audio/Water_splash.ogg',
     'resources/audio/preloadEmpty.mp3',
     'resources/audio/Winner_Kun.mp3',]);
 
+function areQuestionsFinished() {
+    return _problems.length > 0 && _currentQuestionIndex >= _problems.length;
+}
+
+function bothBulletsSpent() {
+    return _bullets1 <= 0 && _bullets2 <= 0;
+}
+
+function isQuizLocked() {
+    return gameEnded || areQuestionsFinished();
+}
+
 function enterSettleWait(name) {
     gameEnded = true;
     winnerName = name || '平局';
@@ -67,13 +79,40 @@ function enterSettleWait(name) {
     saveAllData();
 }
 
-function finishQuestionsIfNeeded() {
-    if (!(_problems.length > 0 && _currentQuestionIndex >= _problems.length)) {
+function closeQuizAfterQuestions() {
+    canAnswer = false;
+    lastAnswerSnapshot = null;
+    setQuizAreaVisible(false);
+    updateRoundDisplay();
+    saveAllData();
+}
+
+function tryEnterDrawSettle(notify) {
+    if (gameEnded || !areQuestionsFinished() || !bothBulletsSpent()) {
         return false;
     }
-    if (!gameEnded) {
-        enterSettleWait('平局');
-        cocoMessage.warning("题库的题目已经全部问完，请点击结算。");
+    enterSettleWait('平局');
+    if (notify) {
+        cocoMessage.warning("双方炮弹已经用完，请点击结算。");
+    }
+    return true;
+}
+
+function finishQuestionsIfNeeded(notify) {
+    if (!areQuestionsFinished()) {
+        return false;
+    }
+    if (gameEnded) {
+        setQuizAreaVisible(false);
+        return true;
+    }
+    closeQuizAfterQuestions();
+    if (tryEnterDrawSettle(false)) {
+        if (notify) {
+            cocoMessage.warning("题库的题目已经全部问完，请点击结算。");
+        }
+    } else if (notify) {
+        cocoMessage.warning("题库的题目已经全部问完，请打完剩余炮弹后再结算。");
     }
     return true;
 }
@@ -97,7 +136,7 @@ function generateQuestion() {
         updateRoundDisplay();
         return;
     }
-    if (finishQuestionsIfNeeded()) {
+    if (finishQuestionsIfNeeded(true)) {
         return;
     }
     const question = _problems[_currentQuestionIndex];
@@ -337,7 +376,7 @@ function startGameLocally() {
         updateHealthDisplay();
         updateMapDisplay('left-panel');
         updateMapDisplay('right-panel');
-        if (!finishQuestionsIfNeeded() && _currentQuestionIndex >= 0 && !gameEnded) {
+        if (!finishQuestionsIfNeeded(false) && _currentQuestionIndex >= 0 && !gameEnded) {
             generateQuestion();
             restoreAnswerVisual();
         }
@@ -439,7 +478,7 @@ function updateBulletsDisplay() {
 function nextQuestion() {
     if (gameEnded) { return; }
     if (_currentQuestionIndex >= _problems.length) {
-        finishQuestionsIfNeeded();
+        finishQuestionsIfNeeded(true);
         return;
     }
     canAnswer = true;
@@ -571,6 +610,9 @@ function fire(panel, x, y) {
     updateHealthDisplay();
     updateBulletsDisplay();
     refreshMaps();
+    if (!gameEnded) {
+        tryEnterDrawSettle(true);
+    }
     saveAllData();
 }
 
@@ -795,7 +837,7 @@ function init() {
 function setQuizAreaVisible(visible) {
     const quizArea = document.querySelector('.quiz-area');
     if (!quizArea) { return; }
-    if (gameEnded) { visible = false; }
+    if (isQuizLocked()) { visible = false; }
     isQuizAreaVisible = !!visible;
     quizArea.classList.toggle('quiz-area-hidden', !isQuizAreaVisible);
     quizArea.style.transform = isQuizAreaVisible ? 'translateY(0)' : 'translateY(-100%)';
@@ -803,7 +845,7 @@ function setQuizAreaVisible(visible) {
 }
 
 function toggleQuizArea() {
-    if (gameEnded) { return; }
+    if (isQuizLocked()) { return; }
     const quizArea = document.querySelector('.quiz-area');
     if (!quizArea || quizArea.style.opacity === '0') { return; }
     setQuizAreaVisible(!isQuizAreaVisible);
@@ -811,7 +853,7 @@ function toggleQuizArea() {
 
 function enableQuizPanelToggle() {
     quizToggleBound = true;
-    setQuizAreaVisible(!gameEnded);
+    setQuizAreaVisible(!isQuizLocked());
 }
 
 function generateLeftRightGrid() {
