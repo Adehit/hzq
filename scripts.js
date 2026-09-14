@@ -140,13 +140,33 @@ function generateQuestion() {
         return;
     }
     const question = _problems[_currentQuestionIndex];
-    document.getElementById('question-content').innerHTML = formatQuestion(question.content);
+    const parts = formatQuestionParts(question.content, true);
+    document.getElementById('question-content').innerHTML = parts.html;
+    const imagesEl = document.getElementById('question-images');
+    const bodyEl = document.querySelector('.question-body');
+    if (imagesEl) {
+        imagesEl.innerHTML = parts.images;
+        imagesEl.style.height = '';
+    }
+    if (bodyEl) { bodyEl.classList.toggle('has-images', !!parts.images); }
     updateOptions(question);
     updateRoundDisplay();
     const quizArea = document.querySelector('.quiz-area');
     waitForQuestionMedia(quizArea, function () {
+        syncQuestionImageHeight();
         funTransitionHeight(quizArea);
     });
+}
+
+function syncQuestionImageHeight() {
+    const bodyEl = document.querySelector('.question-body');
+    const imagesEl = document.getElementById('question-images');
+    const choicesEl = document.getElementById('question-choices');
+    if (!bodyEl || !imagesEl || !choicesEl || !bodyEl.classList.contains('has-images')) {
+        if (imagesEl) { imagesEl.style.height = ''; }
+        return;
+    }
+    imagesEl.style.height = choicesEl.getBoundingClientRect().height + 'px';
 }
 
 function escapeHtml(text) {
@@ -251,7 +271,7 @@ function extractLatexSegments(content) {
     return segments;
 }
 
-function formatQuestionContent(content, allowImages) {
+function formatQuestionParts(content, allowImages) {
     const segments = allowImages ? extractImageAndLatexSegments(content) : extractLatexSegments(content);
     const textHtml = [];
     const imageHtml = [];
@@ -268,15 +288,15 @@ function formatQuestionContent(content, allowImages) {
         }
         textHtml.push(wrapPlainText(segment.value));
     });
-    return textHtml.join('') + imageHtml.join('');
+    return { html: textHtml.join(''), images: imageHtml.join('') };
 }
 
 function formatQuestion(content) {
-    return formatQuestionContent(content, true);
+    return formatQuestionParts(content, true).html;
 }
 
 function formatChoice(content) {
-    return formatQuestionContent(content, false);
+    return formatQuestionParts(content, false).html;
 }
 
 function shuffleQuestions() {
