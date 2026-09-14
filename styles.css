@@ -18,8 +18,10 @@
 }
 
 body {
-    background-image: url(resources/img/XinduWholeScene.jpg);
+    background-image: url(resources/img/bg.png);
     background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     height: 100vh;
     margin: 0;
     display: flex;
@@ -49,9 +51,12 @@ body {
     gap: 10px;
     width: fit-content;
     height: fit-content;
-    padding: 48px 96px;
-    background-color: rgba(55, 81, 95, 0.4);
-    box-shadow: 0 0px 8px rgba(190, 190, 190, 0.2);
+    padding: 48px 96px 56px;
+    background-color: rgba(55, 81, 95, 0.86);
+    border-radius: 12px;
+    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.45),
+        0px 12px 18px -6px rgba(0, 0, 0, 0.35),
+        0px -8px 0px 0px rgba(0, 0, 0, 0.28) inset;
     animation: floatingMenu 1s ease-in-out infinite;
 }
 
@@ -81,29 +86,214 @@ body {
 @keyframes floatingMenu {
     0% {
         transform: translateY(0);
-        background-color: rgba(55, 81, 95, 0.4);
+        background-color: rgba(55, 81, 95, 0.86);
     }
 
     50% {
         transform: translateY(-10px);
-        background-color: rgba(55, 81, 95, 0.6);
+        background-color: rgba(55, 81, 95, 0.94);
     }
 
     100% {
         transform: translateY(0);
-        background-color: rgba(55, 81, 95, 0.4);
+        background-color: rgba(55, 81, 95, 0.86);
     }
 }
 
 .settings-menu {
     display: none;
     color: #fff;
+    gap: 18px;
+    min-width: min(520px, 86vw);
+    padding: 36px 48px 44px;
+}
+
+.settings-menu h2 {
+    font-size: 1.8em;
+    letter-spacing: 0.2em;
+    text-shadow: 0px 2px 0px rgba(0, 0, 0, 0.35);
+    margin-bottom: 4px;
+}
+
+.settings-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.settings-row label,
+.file-title {
+    flex: 0 0 118px;
+    text-align: right;
+    font-size: 0.95em;
+    color: #e8eef3;
 }
 
 .settings-menu input[type="text"] {
-    height: 1.1rem;
-    padding: 0 12px;
+    flex: 1;
+    height: 2.2rem;
+    padding: 0 12px 3px;
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.14);
+    border: none;
+    border-radius: 5px;
     outline: none;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.28),
+        0px -3px 0px 0px rgba(0, 0, 0, 0.22) inset;
+}
+
+.settings-menu input[type="text"]::placeholder {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.settings-menu input[type="text"]:focus {
+    background-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.28),
+        0px -3px 0px 0px rgba(0, 0, 0, 0.22) inset,
+        0 0 0 2px rgba(120, 180, 220, 0.55);
+}
+
+.file-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.file-field input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.file-control {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 10px;
+}
+
+.file-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 6px 16px 10px;
+    font-size: 0.9em;
+    line-height: 1.2;
+    color: #fff;
+    background-color: rgba(70, 130, 180, 0.88);
+    border-radius: 5px;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4),
+        0px 5px 8px -3px rgba(0, 0, 0, 0.28),
+        0px -3px 0px 0px rgba(0, 0, 0, 0.25) inset;
+}
+
+.file-field:hover .file-button {
+    background-color: rgba(60, 120, 170, 0.95);
+}
+
+.file-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.85em;
+}
+
+.file-name.selected {
+    color: #d7f3ff;
+}
+
+.settings-actions {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.settings-actions .menu-button {
+    margin: 0;
+    min-width: 132px;
+}
+
+.settings-actions-secondary {
+    margin-top: 0;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.menu-button-ghost {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+.menu-button-ghost:hover {
+    background-color: rgba(255, 255, 255, 0.28);
+}
+
+.menu-button-secondary {
+    background-color: rgba(90, 120, 150, 0.85);
+}
+
+.menu-button-secondary:hover {
+    background-color: rgba(80, 110, 140, 0.95);
+}
+
+.menu-button.menu-button-danger,
+.menu-button.menu-button-danger:hover,
+.menu-button.menu-button-danger:active {
+    color: #ffb3b3;
+}
+
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.45);
+    z-index: 2000;
+}
+
+.confirm-dialog {
+    min-width: min(360px, 82vw);
+    padding: 28px 32px 32px;
+    color: #fff;
+    text-align: center;
+    background-color: rgba(55, 81, 95, 0.92);
+    border-radius: 12px;
+    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.45),
+        0px 12px 18px -6px rgba(0, 0, 0, 0.35),
+        0px -8px 0px 0px rgba(0, 0, 0, 0.28) inset;
+}
+
+.confirm-dialog p {
+    margin: 8px 0 20px;
+    line-height: 1.6;
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.confirm-actions .menu-button {
+    margin: 0;
+    min-width: 108px;
 }
 
 
@@ -136,35 +326,59 @@ body {
 }
 
 .start-menu h1 {
-    font-family: 仿宋;
-    background-image: url(resources/img/Invicon_Water.webp);
-    color: transparent;
-    -webkit-background-clip: text;
-    background-clip: text;
     text-shadow: none;
-    font-size: 5rem;
+    margin-bottom: 16px;
+}
+
+.title-logo {
+    display: block;
+    width: min(300px, 42vw);
+    height: auto;
+    object-fit: contain;
+    image-rendering: auto;
+    margin: 0 auto;
+}
+
+.start-menu .title-logo {
+    width: min(300px, 42vw);
 }
 
 .menu-button {
-    padding: 10px 50px;
-    font-size: 1em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 44px 12px;
+    font-size: 1.05em;
+    line-height: 1.2;
     color: #fff;
     background-color: rgba(70, 130, 180, 0.8);
     /* 略微透明的蓝色 */
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     outline: none;
     margin: 6px 0;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4),
+        0px 6px 10px -3px rgba(0, 0, 0, 0.3),
+        0px -4px 0px 0px rgba(0, 0, 0, 0.25) inset;
 }
 
 .menu-button:hover {
     background-color: rgba(60, 120, 170, 0.8);
     /* 略微透明的深蓝色 */
     outline: none;
-    box-shadow: 0 0 0 2px rgba(70, 130, 180, 0.8);
-    /* 略微透明的蓝色 */
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4),
+        0px 6px 10px -3px rgba(0, 0, 0, 0.3),
+        0px -4px 0px 0px rgba(0, 0, 0, 0.25) inset,
+        0 0 0 2px rgba(70, 130, 180, 0.8);
+}
+
+.menu-button:active {
+    transform: translateY(2px);
+    padding: 10px 44px 10px;
+    box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.35),
+        0px -2px 0px 0px rgba(0, 0, 0, 0.2) inset;
 }
 
 .container {
@@ -292,22 +506,37 @@ h1 {
 
 .settle-button {
     display: none;
+    align-items: center;
+    justify-content: center;
     margin-top: 8px;
-    padding: 8px 36px;
-    font-size: 1.2em;
+    padding: 8px 32px 12px;
+    font-size: 1.15em;
+    line-height: 1.2;
     color: #fff;
     background-color: rgba(70, 130, 180, 0.9);
     border: none;
     border-radius: 5px;
     cursor: pointer;
     outline: none;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4),
-        0px -3px 0px 0px rgba(0, 0, 0, 0.2) inset;
+        0px 6px 10px -3px rgba(0, 0, 0, 0.3),
+        0px -4px 0px 0px rgba(0, 0, 0, 0.25) inset;
 }
 
 .settle-button:hover {
     background-color: rgba(60, 120, 170, 0.95);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4),
+        0px 6px 10px -3px rgba(0, 0, 0, 0.3),
+        0px -4px 0px 0px rgba(0, 0, 0, 0.25) inset,
+        0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.settle-button:active {
+    transform: translateY(2px);
+    padding: 10px 32px 10px;
+    box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.35),
+        0px -2px 0px 0px rgba(0, 0, 0, 0.2) inset;
 }
 
 .left .health {
@@ -389,12 +618,16 @@ h1 {
     top: 0px;
     left: 0;
     right: 0;
-    background-color: #f7f7f799;
+    background-color: #f7f7f7e6;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     z-index: 1000;
     padding: 20px;
     border-radius: 0 0 12px 12px;
     transition: height 0.8s ease, opacity 1s ease, transform 0.8s ease-in-out;
+}
+
+.quiz-area.quiz-area-hidden {
+    pointer-events: none;
 }
 
 .player-panel {
@@ -411,10 +644,10 @@ h1 {
 
 .player-choices {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     column-gap: 20px;
     row-gap: 8px;
-    width: 100%;
+    width: 56%;
 }
 
 .choice {
@@ -423,14 +656,19 @@ h1 {
     padding: 10px 20px;
     margin: 5px;
     cursor: pointer;
+    border: 2px solid rgba(55, 81, 95, 0.4);
     border-radius: 5px;
     flex-grow: 1;
     text-align: center;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .choice:hover {
-    background-color: #ffffffee;
+    background-color: #4c8fd8;
+    color: #fff;
+    border-color: #2f6fb4;
+    transform: scale(1.06);
+    box-shadow: 0 4px 10px rgba(47, 111, 180, 0.35);
 }
 
 .choice.correct {
@@ -457,11 +695,50 @@ h1 {
 }
 
 #question-content {
-    font-family: 'en-pixel', 'high-pixel', sans-serif;
+    font-family: 仿宋, FangSong, STFangsong, 'Songti SC', serif;
     font-weight: bold;
     font-size: 2em;
-    text-align: left;
+    text-align: center;
+    width: 100%;
     margin-bottom: 20px;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+#question-content .plain-digit,
+.choice-content .plain-digit {
+    font-family: 仿宋, FangSong, STFangsong, 'Songti SC', serif;
+}
+
+#question-content .katex,
+.choice-content .katex {
+    font-size: 1.05em;
+    font-family: KaTeX_Main, "Times New Roman", serif;
+}
+
+.katex * {
+    font-family: unset;
+}
+
+#question-content .katex-display {
+    margin: 0.4em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.latex-error {
+    color: #c62828;
+}
+
+.question-image {
+    display: block;
+    max-width: min(100%, 420px);
+    max-height: 220px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    margin: 10px auto;
+    image-rendering: auto;
 }
 
 #question-choices {
@@ -470,22 +747,50 @@ h1 {
     column-gap: 20px;
     row-gap: 8px;
     margin-bottom: 20px;
+    justify-items: center;
+    width: 100%;
 }
 
 .choice-content {
-    font-family: 'en-pixel', 'high-pixel', sans-serif;
+    font-family: 仿宋, FangSong, STFangsong, 'Songti SC', serif;
     font-weight: bold;
     font-size: 1.5em;
+    text-align: center;
 }
 
-.skip-button {
-    background-color: #f44336;
+.quiz-round-info {
+    width: 100%;
+    margin-top: 18px;
+    text-align: center;
+    color: #333;
+}
+
+.quiz-round-info .remaining-hint {
+    color: #444;
+}
+
+.skip-button,
+.next-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     color: white;
-    padding: 10px 20px;
+    padding: 8px 20px 12px;
+    font-size: 1em;
+    line-height: 1.2;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     margin-top: 10px;
+    outline: none;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4),
+        0px 6px 10px -3px rgba(0, 0, 0, 0.3),
+        0px -4px 0px 0px rgba(0, 0, 0, 0.25) inset;
+}
+
+.skip-button {
+    background-color: #f44336;
 }
 
 .skip-button:hover {
@@ -494,16 +799,18 @@ h1 {
 
 .next-button {
     background-color: #4CAF50;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 10px;
 }
 
 .next-button:hover {
     background-color: #45a049;
+}
+
+.skip-button:active,
+.next-button:active {
+    transform: translateY(2px);
+    padding: 10px 20px 10px;
+    box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.35),
+        0px -2px 0px 0px rgba(0, 0, 0, 0.2) inset;
 }
 
 .game-over {

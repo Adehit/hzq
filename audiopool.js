@@ -41,12 +41,14 @@ class AudioPool {
         }
     }
 
-    playSound(url) {
+    playSound(url, onended) {
         const sound = this.borrowSound(url);
         if (sound) {
+            sound.currentTime = 0;
             sound.play();
             sound.onended = () => {
                 this.returnSound(sound, url);
+                if (onended) { onended(); }
             };
         } else {
             console.error('Failed to play sound. Sound might not be preloaded or available.');

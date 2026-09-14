@@ -1,8 +1,8 @@
 const SIZE = 10;
-const EVENT_TITLE = '莆田第一中学第一届3099知识竞赛决赛';
+const EVENT_TITLE = '莆田第一中学第三届 3099 知识竞赛决赛';
 const CREDITS_DEV = 'Dev: [Github] Adehit';
 const CREDITS_ARTIST = 'Artist: Mojang';
-const CREDITS_ACK = 'Acknowledgement: Linrui, Wuyinan';
+const CREDITS_ACK = 'Acknowledgement: Linrui, [Github] SkySight-666';
 
 function isValidMap(map) {
     if (!Array.isArray(map) || map.length !== SIZE * SIZE) return false;
@@ -46,6 +46,7 @@ var lastAnswerSnapshot = null;
 var lastAnswerPanel = null;
 var lastAnswerChoice = null;
 var isQuizAreaVisible = true;
+var quizToggleBound = false;
 var gameEnded = false;
 var winnerName = '';
 var healths = [[1, 2, 3], [1, 2, 3]];
@@ -56,21 +57,34 @@ const audioPool = new AudioPool(['resources/audio/Water_splash.ogg',
     'resources/audio/preloadEmpty.mp3',
     'resources/audio/Winner_Kun.mp3',]);
 
+function enterSettleWait(name) {
+    gameEnded = true;
+    winnerName = name || '平局';
+    canAnswer = false;
+    lastAnswerSnapshot = null;
+    setQuizAreaVisible(false);
+    updateRoundDisplay();
+    saveAllData();
+}
+
+function finishQuestionsIfNeeded() {
+    if (!(_problems.length > 0 && _currentQuestionIndex >= _problems.length)) {
+        return false;
+    }
+    if (!gameEnded) {
+        enterSettleWait('平局');
+        cocoMessage.warning("题库的题目已经全部问完，请点击结算。");
+    }
+    return true;
+}
+
 function isOver() {
     // 判断游戏是否结束
     if (gameEnded) { return true; }
     if (healths[0].every(item => item <= 0)) {
-        gameEnded = true;
-        winnerName = _name2;
+        enterSettleWait(_name2);
     } else if (healths[1].every(item => item <= 0)) {
-        gameEnded = true;
-        winnerName = _name1;
-    }
-    if (gameEnded) {
-        canAnswer = false;
-        lastAnswerSnapshot = null;
-        updateRoundDisplay();
-        saveAllData();
+        enterSettleWait(_name1);
     }
     return gameEnded;
 }
@@ -83,32 +97,147 @@ function generateQuestion() {
         updateRoundDisplay();
         return;
     }
-    if (_currentQuestionIndex >= _problems.length) {
-        canAnswer = false;
-        cocoMessage.warning("题库的题目已经全部问完。");
-        updateRoundDisplay();
+    if (finishQuestionsIfNeeded()) {
         return;
     }
     const question = _problems[_currentQuestionIndex];
     document.getElementById('question-content').innerHTML = formatQuestion(question.content);
-    funTransitionHeight(document.querySelector('.quiz-area'));
     updateOptions(question);
     updateRoundDisplay();
+    const quizArea = document.querySelector('.quiz-area');
+    waitForQuestionMedia(quizArea, function () {
+        funTransitionHeight(quizArea);
+    });
+}
+
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/`/g, '&#96;');
+}
+
+function wrapPlainText(text) {
+    const escaped = escapeHtml(text).replace(/\r\n|\r|\n/g, '<br>');
+    return escaped.replace(/\d+/g, '<span class="plain-digit">$&</span>');
+}
+
+function renderLatex(tex, displayMode) {
+    if (typeof katex === 'undefined') {
+        return '<span class="latex-error">' + wrapPlainText(tex) + '</span>';
+    }
+    try {
+        return katex.renderToString(tex, {
+            displayMode: !!displayMode,
+            throwOnError: false,
+            strict: 'ignore',
+            trust: false,
+            output: 'html'
+        });
+    } catch (e) {
+        return '<span class="latex-error">' + wrapPlainText(tex) + '</span>';
+    }
+}
+
+function isProblemImageName(name) {
+    return /^[A-Za-z0-9_\-]+\.[A-Za-z0-9]+$/.test(name);
+}
+
+function renderProblemImage(name) {
+    const safeName = encodeURIComponent(name);
+    return '<img class="question-image" src="resources/img/problems/' + safeName + '" alt="' + escapeHtml(name) + '">';
+}
+
+function extractImageAndLatexSegments(content) {
+    const source = String(content == null ? '' : content);
+    const imagePattern = /!\?([A-Za-z0-9_\-]+\.[A-Za-z0-9]+)\?!/g;
+    const chunks = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = imagePattern.exec(source)) !== null) {
+        if (!isProblemImageName(match[1])) {
+            continue;
+        }
+        if (match.index > lastIndex) {
+            chunks.push({ type: 'text', value: source.slice(lastIndex, match.index) });
+        }
+        chunks.push({ type: 'image', value: match[1] });
+        lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < source.length) {
+        chunks.push({ type: 'text', value: source.slice(lastIndex) });
+    }
+    const segments = [];
+    chunks.forEach(function (chunk) {
+        if (chunk.type === 'image') {
+            segments.push(chunk);
+        } else {
+            extractLatexSegments(chunk.value).forEach(function (segment) {
+                segments.push(segment);
+            });
+        }
+    });
+    return segments;
+}
+
+function extractLatexSegments(content) {
+    const source = String(content == null ? '' : content);
+    const segments = [];
+    const pattern = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\begin\{([^}]+)\}([\s\S]+?)\\end\{\3\}|\$((?:\\.|[^$\\])+)\$|\\\(([\s\S]+?)\\\)/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = pattern.exec(source)) !== null) {
+        if (match.index > lastIndex) {
+            segments.push({ type: 'text', value: source.slice(lastIndex, match.index) });
+        }
+        if (match[1] != null) {
+            segments.push({ type: 'math', display: true, value: match[1] });
+        } else if (match[2] != null) {
+            segments.push({ type: 'math', display: true, value: match[2] });
+        } else if (match[3] != null) {
+            segments.push({ type: 'math', display: true, value: '\\begin{' + match[3] + '}' + match[4] + '\\end{' + match[3] + '}' });
+        } else if (match[5] != null) {
+            segments.push({ type: 'math', display: false, value: match[5] });
+        } else {
+            segments.push({ type: 'math', display: false, value: match[6] });
+        }
+        lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < source.length) {
+        segments.push({ type: 'text', value: source.slice(lastIndex) });
+    }
+    return segments;
+}
+
+function formatQuestionContent(content, allowImages) {
+    const segments = allowImages ? extractImageAndLatexSegments(content) : extractLatexSegments(content);
+    const textHtml = [];
+    const imageHtml = [];
+    segments.forEach(function (segment) {
+        if (segment.type === 'image') {
+            if (allowImages) {
+                imageHtml.push(renderProblemImage(segment.value));
+            }
+            return;
+        }
+        if (segment.type === 'math') {
+            textHtml.push(renderLatex(segment.value, segment.display));
+            return;
+        }
+        textHtml.push(wrapPlainText(segment.value));
+    });
+    return textHtml.join('') + imageHtml.join('');
 }
 
 function formatQuestion(content) {
-    // 处理问题中的转义
-    const highPixel = '<span style="font-family:\'high-pixel\';">$&</span>';
-    const escapeChar = {
-        '&': '&amp;',
-        '"': '&quot;',
-        "'": '&#39;',
-        '`': '&#96;'
-    };
-    const escapeCharRegex = new RegExp(`[${Object.keys(escapeChar).join('')}]`, 'g');
-    const escapedContent = content.replace(escapeCharRegex, (match) => escapeChar[match]);
-    const contentWithHighPixel = escapedContent.replace(/\d+/g, highPixel);
-    return contentWithHighPixel;
+    return formatQuestionContent(content, true);
+}
+
+function formatChoice(content) {
+    return formatQuestionContent(content, false);
 }
 
 function shuffleQuestions() {
@@ -208,18 +337,22 @@ function startGameLocally() {
         updateHealthDisplay();
         updateMapDisplay('left-panel');
         updateMapDisplay('right-panel');
-        if (_currentQuestionIndex >= 0) {
+        if (!finishQuestionsIfNeeded() && _currentQuestionIndex >= 0 && !gameEnded) {
             generateQuestion();
             restoreAnswerVisual();
         }
+        enableQuizPanelToggle();
     }, 5000);
-    setTimeout(() => {
-        document.querySelector("body").oncontextmenu = e => {
-            e.preventDefault();
-            document.querySelector('.quiz-area').style.transform = `translateY(${!isQuizAreaVisible ? 0 : "-100%"})`;
-            isQuizAreaVisible ^= 1;
-        }
-    }, 6000)
+}
+
+function confirmClearAllData() {
+    const overlay = document.getElementById('clear-cache-confirm');
+    if (overlay) { overlay.style.display = 'flex'; }
+}
+
+function closeClearConfirm() {
+    const overlay = document.getElementById('clear-cache-confirm');
+    if (overlay) { overlay.style.display = 'none'; }
 }
 
 function clearAllData() {
@@ -306,9 +439,7 @@ function updateBulletsDisplay() {
 function nextQuestion() {
     if (gameEnded) { return; }
     if (_currentQuestionIndex >= _problems.length) {
-        canAnswer = false;
-        cocoMessage.warning("题库的题目已经全部问完。");
-        updateRoundDisplay();
+        finishQuestionsIfNeeded();
         return;
     }
     canAnswer = true;
@@ -320,6 +451,7 @@ function nextQuestion() {
     });
     _currentQuestionIndex++;
     generateQuestion();
+    saveAllData();
 }
 
 function skipQuestion() {
@@ -333,7 +465,7 @@ function skipQuestion() {
 
 function updateOptions(question) {
     ['A', 'B', 'C', 'D'].forEach(option => {
-        document.getElementById(`cc-${option}`).innerHTML = formatQuestion(question[option]);
+        document.getElementById(`cc-${option}`).innerHTML = formatChoice(question[option]);
     });
 }
 
@@ -444,18 +576,19 @@ function fire(panel, x, y) {
 
 // 更新轮数显示
 function updateRoundDisplay() {
-    const roundInfo = document.querySelector('.round-info');
+    const roundInfo = document.querySelector('.game-title .round-info');
     const settleBtn = document.querySelector('.settle-button');
     if (gameEnded) {
         if (roundInfo) { roundInfo.style.display = 'none'; }
-        if (settleBtn) { settleBtn.style.display = 'inline-block'; }
-        return;
+        if (settleBtn) { settleBtn.style.display = 'inline-flex'; }
+    } else {
+        if (roundInfo) { roundInfo.style.display = ''; }
+        if (settleBtn) { settleBtn.style.display = 'none'; }
     }
-    if (roundInfo) { roundInfo.style.display = ''; }
-    if (settleBtn) { settleBtn.style.display = 'none'; }
-    $(".round-number").text(`${parseInt(answeredCnt === -1 ? 0 : answeredCnt / 5 + 1)}`);
-    $(".round-inside-cnt").text(answeredCnt === -1 ? 0 : answeredCnt % 5 + 1);
-    $(".remaining-cnt").text(Math.max(0, _problems.length - Math.max(_currentQuestionIndex, 0)));
+    const questionNo = _currentQuestionIndex < 0 ? 0 : _currentQuestionIndex + 1;
+    $(".round-number").text(`${parseInt(questionNo === 0 ? 0 : (questionNo - 1) / 5 + 1)}`);
+    $(".round-inside-cnt").text(questionNo === 0 ? 0 : (questionNo - 1) % 5 + 1);
+    $(".remaining-cnt").text(Math.max(0, _problems.length - questionNo));
 }
 
 // 更新血量显示
@@ -621,14 +754,24 @@ function startGame() {
         document.body.style.cursor = 'default';
         updateBulletsDisplay();
         updateHealthDisplay();
+        enableQuizPanelToggle();
     }, 5000);
-    setTimeout(() => {
-        document.querySelector("body").oncontextmenu = e => {
-            e.preventDefault();
-            document.querySelector('.quiz-area').style.transform = `translateY(${!isQuizAreaVisible ? 0 : "-100%"})`;
-            isQuizAreaVisible ^= 1;
-        }
-    }, 6000)
+}
+
+function bindFilePickers() {
+    document.querySelectorAll('.file-field input[type="file"]').forEach(function (input) {
+        input.addEventListener('change', function () {
+            const nameEl = input.closest('.file-field').querySelector('.file-name');
+            if (!nameEl) { return; }
+            if (input.files && input.files[0]) {
+                nameEl.textContent = input.files[0].name;
+                nameEl.classList.add('selected');
+            } else {
+                nameEl.textContent = '未选择';
+                nameEl.classList.remove('selected');
+            }
+        });
+    });
 }
 
 function init() {
@@ -636,12 +779,39 @@ function init() {
     const gameBoard = document.querySelector('.game-board');
     statusBar.style.width = `${gameBoard.clientWidth}px`;
     cocoMessage.config({ duration: 1000 })
-    document.oncontextmenu = (e) => e.preventDefault();
+    document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        if (!quizToggleBound) { return; }
+        toggleQuizArea();
+    });
     const eventTitle = document.getElementById('event-title');
     if (eventTitle) { eventTitle.textContent = EVENT_TITLE; }
     document.querySelectorAll('.credit-dev').forEach(function (el) { el.textContent = CREDITS_DEV; });
     document.querySelectorAll('.credit-artist').forEach(function (el) { el.textContent = CREDITS_ARTIST; });
     document.querySelectorAll('.credit-ack').forEach(function (el) { el.textContent = CREDITS_ACK; });
+    bindFilePickers();
+}
+
+function setQuizAreaVisible(visible) {
+    const quizArea = document.querySelector('.quiz-area');
+    if (!quizArea) { return; }
+    if (gameEnded) { visible = false; }
+    isQuizAreaVisible = !!visible;
+    quizArea.classList.toggle('quiz-area-hidden', !isQuizAreaVisible);
+    quizArea.style.transform = isQuizAreaVisible ? 'translateY(0)' : 'translateY(-100%)';
+    quizArea.style.pointerEvents = isQuizAreaVisible ? 'auto' : 'none';
+}
+
+function toggleQuizArea() {
+    if (gameEnded) { return; }
+    const quizArea = document.querySelector('.quiz-area');
+    if (!quizArea || quizArea.style.opacity === '0') { return; }
+    setQuizAreaVisible(!isQuizAreaVisible);
+}
+
+function enableQuizPanelToggle() {
+    quizToggleBound = true;
+    setQuizAreaVisible(!gameEnded);
 }
 
 function generateLeftRightGrid() {
@@ -658,15 +828,38 @@ function generateMiddleGrid() {
  * @param {HTMLDivElement} element 
  * @returns null
  */
-var funTransitionHeight = function (element) {
-    if (typeof window.getComputedStyle == "undefined") return;
-    let height = window.getComputedStyle(element).height;
+function waitForQuestionMedia(root, done) {
+    const finish = function () {
+        requestAnimationFrame(function () {
+            requestAnimationFrame(done);
+        });
+    };
+    const imgs = root ? Array.prototype.slice.call(root.querySelectorAll('img')) : [];
+    if (!imgs.length) { finish(); return; }
+    let left = imgs.length;
+    const tick = function () {
+        left--;
+        if (left <= 0) { finish(); }
+    };
+    imgs.forEach(function (img) {
+        if (img.complete) { tick(); return; }
+        img.addEventListener('load', tick, { once: true });
+        img.addEventListener('error', tick, { once: true });
+    });
+}
 
+var funTransitionHeight = function (element) {
+    if (!element || typeof window.getComputedStyle == "undefined") return;
+    let height = window.getComputedStyle(element).height;
     element.style.height = "auto";
-    let targetHeight = window.getComputedStyle(element).height;
+    let targetPx = element.scrollHeight;
+    const computedPx = parseFloat(window.getComputedStyle(element).height);
+    if (!isNaN(computedPx) && computedPx > targetPx) {
+        targetPx = computedPx;
+    }
     element.style.height = height;
     element.offsetWidth = element.offsetWidth;
-    element.style.height = targetHeight;
+    element.style.height = targetPx + "px";
 };
 
 function fireworks(duration = 15 * 1000) {
@@ -719,10 +912,21 @@ function schoolPride(duration = 15 * 1000) {
     }());
 }
 
+var victoryPlaying = false;
+function playVictoryShow() {
+    if (victoryPlaying) { return; }
+    victoryPlaying = true;
+    schoolPride(84000);
+    audioPool.playSound("resources/audio/Winner_Kun.mp3", function () {
+        victoryPlaying = false;
+    });
+}
+
 function Winner(name) {
+    const isDraw = !name || name === '平局';
     const options1 = {
         strings: [
-            '胜&emsp;利&emsp;者&emsp;是'
+            isDraw ? '比&emsp;赛&emsp;结&emsp;果' : '胜&emsp;利&emsp;者&emsp;是'
         ],
         typeSpeed: 50,
         startDelay: 0,
@@ -731,7 +935,7 @@ function Winner(name) {
     };
     const options2 = {
         strings: [
-            name
+            isDraw ? '平局' : name
         ],
         typeSpeed: 50,
         startDelay: 500,
@@ -745,13 +949,16 @@ function Winner(name) {
     setTimeout(() => {
         $(".quiz-area").fadeOut(0);
         $(".game-over").fadeIn(1000);
-        schoolPride(84000);
-        audioPool.playSound("resources/audio/Winner_Kun.mp3");
+        playVictoryShow();
     }, 1000);
     setTimeout(() => {
         const typed1 = new Typed("#typed-1", options1);
         const typed2 = new Typed("#typed-2", options2);
     }, 2000);
+    const gameOver = document.querySelector('.game-over');
+    gameOver.onclick = function () {
+        playVictoryShow();
+    };
 }
 
 generateLeftRightGrid();
