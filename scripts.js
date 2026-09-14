@@ -36,6 +36,8 @@ var _map2 = [];
 var _name1 = '';
 var _name2 = '';
 var continue_error = [0, 0];
+var correctCnt = [0, 0];
+var wrongCnt = [0, 0];
 
 var _bullets1 = 0;
 var _bullets2 = 0;
@@ -87,11 +89,25 @@ function closeQuizAfterQuestions() {
     saveAllData();
 }
 
+function remainingHealth(teamIndex) {
+    return healths[teamIndex].reduce(function (sum, hp) { return sum + Math.max(0, hp); }, 0);
+}
+
+function decideNonSunkWinner() {
+    const hp1 = remainingHealth(0);
+    const hp2 = remainingHealth(1);
+    if (hp1 !== hp2) { return hp1 > hp2 ? _name1 : _name2; }
+    if (correctCnt[0] !== correctCnt[1]) { return correctCnt[0] > correctCnt[1] ? _name1 : _name2; }
+    if (wrongCnt[0] !== wrongCnt[1]) { return wrongCnt[0] < wrongCnt[1] ? _name1 : _name2; }
+    return '平局';
+}
+
 function tryEnterDrawSettle(notify) {
     if (gameEnded || !areQuestionsFinished() || !bothBulletsSpent()) {
         return false;
     }
-    enterSettleWait('平局');
+    const result = decideNonSunkWinner();
+    enterSettleWait(result);
     if (notify) {
         cocoMessage.warning("双方炮弹已经用完，请点击结算。");
     }
@@ -319,6 +335,8 @@ function saveAllData() {
         problems: _problems,
         currentQuestionIndex: _currentQuestionIndex,
         continue_error: continue_error,
+        correctCnt: correctCnt,
+        wrongCnt: wrongCnt,
         answeredCnt: answeredCnt,
         canAnswer: canAnswer,
         lastAnswerSnapshot: lastAnswerSnapshot,
@@ -344,6 +362,8 @@ function loadAllData() {
         _problems = parsedData.problems;
         _currentQuestionIndex = parsedData.currentQuestionIndex;
         continue_error = parsedData.continue_error;
+        correctCnt = Array.isArray(parsedData.correctCnt) ? parsedData.correctCnt : [0, 0];
+        wrongCnt = Array.isArray(parsedData.wrongCnt) ? parsedData.wrongCnt : [0, 0];
         answeredCnt = parsedData.answeredCnt;
         lastAnswerSnapshot = parsedData.lastAnswerSnapshot || null;
         lastAnswerPanel = parsedData.lastAnswerPanel || null;
@@ -393,6 +413,7 @@ function startGameLocally() {
         quizArea.style.pointerEvents = 'auto';
         document.body.style.cursor = 'default';
         updateBulletsDisplay();
+        updateScoreDisplay();
         updateHealthDisplay();
         updateMapDisplay('left-panel');
         updateMapDisplay('right-panel');
@@ -426,13 +447,17 @@ function chooseAnswer(ele, panel) {
         lastAnswerSnapshot = {
             bullets1: _bullets1,
             bullets2: _bullets2,
-            continue_error: continue_error.slice()
+            continue_error: continue_error.slice(),
+            correctCnt: correctCnt.slice(),
+            wrongCnt: wrongCnt.slice()
         };
         canAnswer = false;
     } else if (lastAnswerSnapshot) {
         _bullets1 = lastAnswerSnapshot.bullets1;
         _bullets2 = lastAnswerSnapshot.bullets2;
         continue_error = lastAnswerSnapshot.continue_error.slice();
+        correctCnt = lastAnswerSnapshot.correctCnt.slice();
+        wrongCnt = lastAnswerSnapshot.wrongCnt.slice();
         answeredCnt--;
         $(".choice").removeClass('correct wrong correct-not-selected');
     } else {
@@ -447,6 +472,7 @@ function chooseAnswer(ele, panel) {
         continue_error[panel === 'left-panel' ? 0 : 1] = 0;
         cocoMessage.success(`【${_name}】回答正确！获得 1 个炮弹。`);
         ele.classList.add('correct');
+        correctCnt[panel === 'left-panel' ? 0 : 1]++;
         if (panel === 'left-panel') {
             _bullets1++;
         } else {
@@ -455,6 +481,7 @@ function chooseAnswer(ele, panel) {
     } else {
         audioPool.playSound("resources/audio/wrong.mp3");
         continue_error[panel === 'left-panel' ? 0 : 1]++;
+        wrongCnt[panel === 'left-panel' ? 0 : 1]++;
         if (continue_error[panel === 'left-panel' ? 0 : 1] >= 2) {
             cocoMessage.error(`【${_name}】回答错误！【${_opponentName}】获得 1 个炮弹。`);
             if (panel === 'left-panel') {
@@ -472,6 +499,7 @@ function chooseAnswer(ele, panel) {
     lastAnswerChoice = ele.dataset.choice;
     answeredCnt++;
     updateBulletsDisplay();
+    updateScoreDisplay();
     updateRoundDisplay();
     saveAllData();
 }
@@ -493,6 +521,13 @@ function restoreAnswerVisual() {
 function updateBulletsDisplay() {
     document.getElementById('bullets1').dataset.number = _bullets1;
     document.getElementById('bullets2').dataset.number = _bullets2;
+}
+
+function updateScoreDisplay() {
+    const score1 = document.getElementById('score1');
+    const score2 = document.getElementById('score2');
+    if (score1) { score1.textContent = `对 ${correctCnt[0]}　错 ${wrongCnt[0]}`; }
+    if (score2) { score2.textContent = `对 ${correctCnt[1]}　错 ${wrongCnt[1]}`; }
 }
 
 function nextQuestion() {
@@ -539,6 +574,46 @@ function refreshMaps() {
     if (name1) { name1.classList.toggle('team-selected', nowChoosePanel === 'A'); }
     if (name2) { name2.classList.toggle('team-selected', nowChoosePanel === 'B'); }
 }
+var pressedKeys = {};
+
+function isWinnerEditChord() {
+    return !!(pressedKeys.Control && pressedKeys.KeyA && pressedKeys.KeyB);
+}
+
+function enableWinnerNameEdit() {
+    const el = document.getElementById('typed-2');
+    const gameOver = document.querySelector('.game-over');
+    if (!el || !gameOver || gameOver.style.display === 'none' || el.isContentEditable) { return; }
+    if (!el.textContent) { el.textContent = winnerName || '平局'; }
+    el.contentEditable = 'true';
+    el.classList.add('winner-editing');
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    el.onblur = function () {
+        el.contentEditable = 'false';
+        el.classList.remove('winner-editing');
+        el.onblur = null;
+    };
+}
+
+document.addEventListener('keydown', function (event) {
+    pressedKeys[event.key === 'Control' ? 'Control' : event.code] = true;
+    if (isWinnerEditChord()) {
+        event.preventDefault();
+        enableWinnerNameEdit();
+    }
+});
+document.addEventListener('keyup', function (event) {
+    delete pressedKeys[event.key === 'Control' ? 'Control' : event.code];
+});
+window.addEventListener('blur', function () {
+    pressedKeys = {};
+});
+
 document.onkeydown = function (event) {
     if (event.target && (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable)) {
         return;
@@ -815,6 +890,7 @@ function startGame() {
         quizArea.style.pointerEvents = 'auto';
         document.body.style.cursor = 'default';
         updateBulletsDisplay();
+        updateScoreDisplay();
         updateHealthDisplay();
         enableQuizPanelToggle();
     }, 5000);
@@ -986,24 +1062,14 @@ function playVictoryShow() {
 
 function Winner(name) {
     const isDraw = !name || name === '平局';
-    const options1 = {
-        strings: [
-            isDraw ? '比&emsp;赛&emsp;结&emsp;果' : '胜&emsp;利&emsp;者&emsp;是'
-        ],
-        typeSpeed: 50,
-        startDelay: 0,
-        showCursor: false,
-        loop: false
-    };
-    const options2 = {
-        strings: [
-            isDraw ? '平局' : name
-        ],
-        typeSpeed: 50,
-        startDelay: 500,
-        showCursor: false,
-        loop: false
-    };
+    const titleEl = document.getElementById('typed-1');
+    const nameEl = document.getElementById('typed-2');
+    if (titleEl) { titleEl.innerHTML = isDraw ? '比&emsp;赛&emsp;结&emsp;果' : '胜&emsp;利&emsp;者&emsp;是'; }
+    if (nameEl) {
+        nameEl.textContent = isDraw ? '平局' : name;
+        nameEl.contentEditable = 'false';
+        nameEl.classList.remove('winner-editing');
+    }
     $(".menu").fadeOut(1000);
     $(".container").fadeOut(1000);
     document.querySelector('.quiz-area').style.transform = `translateY(-100%)`;
@@ -1013,12 +1079,9 @@ function Winner(name) {
         $(".game-over").fadeIn(1000);
         playVictoryShow();
     }, 1000);
-    setTimeout(() => {
-        const typed1 = new Typed("#typed-1", options1);
-        const typed2 = new Typed("#typed-2", options2);
-    }, 2000);
     const gameOver = document.querySelector('.game-over');
-    gameOver.onclick = function () {
+    gameOver.onclick = function (event) {
+        if (event.target && event.target.isContentEditable) { return; }
         playVictoryShow();
     };
 }

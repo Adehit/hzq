@@ -5,10 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>海战棋</title>
-    <script src="plugins/pace.min.js"></script>
     <script src="plugins/confetti.js"></script>
-    <script src="plugins/typed.js"></script>
-    <link href="plugins/pace-theme-default.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="plugins/katex/katex.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -79,7 +76,10 @@
     <div class="container" style="opacity: 0; pointer-events: none;">
         <div class="status-bar">
             <div class="team-info left">
-                <span class="team-name1 team-name"></span>
+                <div class="team-heading">
+                    <span class="team-name1 team-name"></span>
+                    <span class="team-score" id="score1">对 0　错 0</span>
+                </div>
                 <div data-number="0" id="bullets1" class="tnt"><img src="resources/img/tnt.png"></img></div>
                 <div class="ship-health">
                     <img src="resources/img/boat1.png" alt="Boat 1" class="ship">
@@ -106,7 +106,10 @@
                 <button class="settle-button" onclick="settleGame()">结算</button>
             </div>
             <div class="team-info right">
-                <span class="team-name2 team-name"></span>
+                <div class="team-heading">
+                    <span class="team-name2 team-name"></span>
+                    <span class="team-score" id="score2">对 0　错 0</span>
+                </div>
                 <div data-number="0" id="bullets2" class="tnt">
                     <img src="resources/img/tnt.png"></img>
                 </div>

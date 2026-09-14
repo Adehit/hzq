@@ -356,7 +356,7 @@ body {
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
     outline: none;
     margin: 6px 0;
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4),
@@ -375,10 +375,8 @@ body {
 }
 
 .menu-button:active {
-    transform: translateY(2px);
-    padding: 10px 44px 10px;
     box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.35),
-        0px -2px 0px 0px rgba(0, 0, 0, 0.2) inset;
+        0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
 }
 
 .container {
@@ -404,39 +402,71 @@ body {
 
 .tnt {
     position: relative;
-    top: -2px;
-}
-
-.left .tnt {
-    left: -14px;
-}
-
-.right .tnt {
-    right: -14px;
+    width: 35px;
+    margin: 0 10px 4px;
 }
 
 .tnt img {
+    display: block;
     width: 35px;
 }
 
 .tnt::after {
     content: attr(data-number);
     position: absolute;
-    top: 20px;
-    right: 0px;
+    right: -2px;
+    bottom: -2px;
+    min-width: 1em;
     color: white;
-    border-radius: 5px;
+    font-weight: bold;
+    text-align: right;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+    pointer-events: none;
 }
 
 .team-info {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    min-width: 168px;
+}
+
+.team-info.left {
+    align-items: flex-start;
+}
+
+.team-info.right {
+    align-items: flex-end;
+}
+
+.team-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 4px 10px 8px;
+}
+
+.team-info.left .team-heading {
+    justify-content: flex-start;
+}
+
+.team-info.right .team-heading {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
 }
 
 .team-name {
-    font-size: 1.2em;
-    margin: 12px 0;
+    font-size: 1.28em;
+    font-weight: bold;
+    line-height: 1.15;
+    margin: 0;
+}
+
+.team-score {
+    font-size: 0.78em;
+    font-weight: normal;
+    letter-spacing: 0.04em;
+    opacity: 0.88;
+    white-space: nowrap;
 }
 
 .team-selected {
@@ -518,7 +548,7 @@ h1 {
     border-radius: 5px;
     cursor: pointer;
     outline: none;
-    transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4),
         0px 6px 10px -3px rgba(0, 0, 0, 0.3),
         0px -4px 0px 0px rgba(0, 0, 0, 0.25) inset;
@@ -533,10 +563,8 @@ h1 {
 }
 
 .settle-button:active {
-    transform: translateY(2px);
-    padding: 10px 32px 10px;
     box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.35),
-        0px -2px 0px 0px rgba(0, 0, 0, 0.2) inset;
+        0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
 }
 
 .left .health {
@@ -818,7 +846,7 @@ h1 {
     cursor: pointer;
     margin-top: 10px;
     outline: none;
-    transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4),
         0px 6px 10px -3px rgba(0, 0, 0, 0.3),
         0px -4px 0px 0px rgba(0, 0, 0, 0.25) inset;
@@ -842,10 +870,8 @@ h1 {
 
 .skip-button:active,
 .next-button:active {
-    transform: translateY(2px);
-    padding: 10px 20px 10px;
     box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.35),
-        0px -2px 0px 0px rgba(0, 0, 0, 0.2) inset;
+        0px -1px 0px 0px rgba(0, 0, 0, 0.2) inset;
 }
 
 .game-over {
@@ -885,4 +911,10 @@ h1 {
 .game-over>* {
     font-family: high-pixel, sans-serif;
     text-align: center;
+}
+
+.winner-name.winner-editing {
+    outline: none;
+    min-width: 2em;
+    caret-color: #333;
 }
