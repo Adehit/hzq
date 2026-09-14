@@ -64,8 +64,29 @@ body {
     animation-play-state: paused;
 }
 
+.winner-event {
+    color: #f4e8ff;
+    font-size: 1.15em;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+    white-space: nowrap;
+}
+
+.winner-caption {
+    color: #ffe9a8;
+    font-size: 1.35em;
+    line-height: 1.4;
+    letter-spacing: 0.12em;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
 .winner-name {
     color: white;
+    font-size: 2.6em;
+    line-height: 1.25;
+    letter-spacing: 0.12em;
+    margin-top: 28px;
     animation: goldTitle 1s infinite;
 }
 
@@ -881,36 +902,77 @@ h1 {
     bottom: 0;
     right: 0;
     margin: auto;
-    padding: 64px;
+    padding: 72px 80px;
     display: none;
     color: #333;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 18px;
     height: fit-content;
     width: fit-content;
-    background-color: #eeeeee99;
+    overflow: hidden;
+    isolation: isolate;
+    background-color: transparent;
+    background-image:
+        linear-gradient(180deg, rgba(88, 18, 150, 0.16), rgba(42, 6, 88, 0.28)),
+        url(resources/img/map_background.png);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    box-shadow:
+        0 0 18px 2px rgba(168, 92, 255, 0.28),
+        0 0 48px 10px rgba(112, 36, 196, 0.18),
+        inset 0 0 36px rgba(140, 64, 255, 0.18);
     z-index: 1001;
-    animation: goldPanel 1s infinite;
 }
 
-@keyframes goldPanel {
-    0% {
-        box-shadow: 0 0 0 #ffd700;
-    }
-
-    50% {
-        box-shadow: 0 0 8px #ffd700;
-    }
-
-    100% {
-        box-shadow: 0 0 0 #ffd700;
-    }
+.game-over::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 420%;
+    height: 420%;
+    pointer-events: none;
+    z-index: 0;
+    background-image: repeating-linear-gradient(
+        90deg,
+        rgba(176, 72, 255, 0) 0px,
+        rgba(176, 72, 255, 0) 28px,
+        rgba(186, 100, 255, 0.16) 52px,
+        rgba(230, 180, 255, 0.42) 78px,
+        rgba(255, 236, 255, 0.62) 96px,
+        rgba(230, 180, 255, 0.42) 114px,
+        rgba(186, 100, 255, 0.16) 140px,
+        rgba(176, 72, 255, 0) 164px,
+        rgba(176, 72, 255, 0) 220px
+    );
+    background-repeat: repeat;
+    background-size: 220px 100%;
+    mix-blend-mode: screen;
+    opacity: 0.7;
+    filter: blur(5px);
+    animation: mcEnchantGlint 3.4s linear infinite;
 }
 
 .game-over>* {
+    position: relative;
+    z-index: 1;
     font-family: high-pixel, sans-serif;
     text-align: center;
+}
+
+@keyframes mcEnchantGlint {
+    from {
+        transform: translate(-50%, -50%) rotate(-45deg);
+        background-position: 0 0;
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotate(-45deg);
+        background-position: 220px 0;
+    }
 }
 
 .winner-name.winner-editing {

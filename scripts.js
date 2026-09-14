@@ -15,6 +15,21 @@ function isValidMap(map) {
     return c1 === 1 && c2 === 2 && c3 === 3;
 }
 
+function isValidProblems(problems) {
+    if (!Array.isArray(problems) || problems.length === 0) return false;
+    for (let i = 0; i < problems.length; i++) {
+        const problem = problems[i];
+        if (!problem || typeof problem !== 'object' || Array.isArray(problem)) return false;
+        if (typeof problem.content !== 'string' || !problem.content.trim()) return false;
+        if (typeof problem.A !== 'string' || !problem.A.trim()) return false;
+        if (typeof problem.B !== 'string' || !problem.B.trim()) return false;
+        if (typeof problem.C !== 'string' || !problem.C.trim()) return false;
+        if (typeof problem.D !== 'string' || !problem.D.trim()) return false;
+        if (problem.ans !== 'A' && problem.ans !== 'B' && problem.ans !== 'C' && problem.ans !== 'D') return false;
+    }
+    return true;
+}
+
 function readJsonFile(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -833,8 +848,12 @@ function saveSettings() {
     if (!map1File) { cocoMessage.warning("舰队布局 1 未成功读取！"); return; }
     if (!map2File) { cocoMessage.warning("舰队布局 2 未成功读取！"); return; }
     Promise.all([readJsonFile(quizFile), readJsonFile(map1File), readJsonFile(map2File)]).then(function (data) {
-        if (!Array.isArray(data[0]) || !isValidMap(data[1]) || !isValidMap(data[2])) {
-            cocoMessage.error("文件格式不正确");
+        if (!isValidProblems(data[0])) {
+            cocoMessage.error("题库格式不正确");
+            return;
+        }
+        if (!isValidMap(data[1]) || !isValidMap(data[2])) {
+            cocoMessage.error("舰队布局格式不正确");
             return;
         }
         _name1 = name1;
@@ -855,6 +874,9 @@ function startGame() {
         return;
     } else if (_problems.length == 0) {
         cocoMessage.error("还未配置题库");
+        return;
+    } else if (!isValidProblems(_problems)) {
+        cocoMessage.error("题库格式不正确");
         return;
     } else if (_map1.length == 0 || _map2.length == 0) {
         cocoMessage.error("还未配置双方舰队布局");
@@ -1062,9 +1084,11 @@ function playVictoryShow() {
 
 function Winner(name) {
     const isDraw = !name || name === '平局';
+    const eventEl = document.getElementById('typed-event');
     const titleEl = document.getElementById('typed-1');
     const nameEl = document.getElementById('typed-2');
-    if (titleEl) { titleEl.innerHTML = isDraw ? '比&emsp;赛&emsp;结&emsp;果' : '胜&emsp;利&emsp;者&emsp;是'; }
+    if (eventEl) { eventEl.textContent = EVENT_TITLE; }
+    if (titleEl) { titleEl.textContent = isDraw ? '比赛结果为' : '胜利者是'; }
     if (nameEl) {
         nameEl.textContent = isDraw ? '平局' : name;
         nameEl.contentEditable = 'false';

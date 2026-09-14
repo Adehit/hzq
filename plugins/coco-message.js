@@ -172,7 +172,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
       className: "coco-msg-icon"
     }, iconObj[type]), c({
       className: "coco-msg-content"
-    }, msg), c({
+    }), c({
       className: "coco-msg-wait " + (closable ? "coco-msg-pointer" : ""),
       _click: function _click() {
         if (closable) {
@@ -180,6 +180,12 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         }
       }
     }, getMsgRight(closable))])]);
+    var contentEl = el.querySelector(".coco-msg-content");
+    if (typeof msg === "string") {
+      contentEl.textContent = msg;
+    } else if (msg && msg.tagName) {
+      contentEl.appendChild(msg);
+    }
     var anm = el.querySelector(".coco-msg__circle");
 
     if (anm) {
