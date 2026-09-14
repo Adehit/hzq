@@ -5,3 +5,6 @@ problems_latex_img.json
 
 # 示例题干图片
 resources/img/problems/
+
+# 发布目录
+release/

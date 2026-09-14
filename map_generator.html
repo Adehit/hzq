@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
@@ -8,6 +8,11 @@
     <style>
         :root {
             --SIZE: 10;
+            --cell: 48px;
+            --gap: 4px;
+            --bg: #eef3f7;
+            --panel: rgba(55, 81, 95, 0.92);
+            --text: #1d2a33;
         }
 
         @font-face {
@@ -16,115 +21,671 @@
         }
 
         * {
+            box-sizing: border-box;
             user-select: none;
-            font-family: pixel, Arial, sans-serif;
+            font-family: pixel, "Microsoft YaHei", sans-serif;
         }
 
         body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--text);
+            background: var(--bg);
             display: flex;
             justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            height: 100vh;
-            margin: 0;
-            background-color: #f7f7f7;
-            font-family: Arial, sans-serif;
+            align-items: flex-start;
+            padding: 28px 16px 40px;
         }
 
-        .grid {
+        .app {
+            width: min(1080px, 100%);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        h1 {
+            margin: 0;
+            text-align: center;
+            font-size: 1.7rem;
+            letter-spacing: 0.08em;
+        }
+
+        .hint {
+            margin: 0;
+            text-align: center;
+            color: #4d616c;
+            line-height: 1.6;
+        }
+
+        .workspace {
             display: grid;
-            grid-template-columns: repeat(var(--SIZE), 40px);
-            grid-template-rows: repeat(var(--SIZE), 40px);
-            gap: 5px;
+            grid-template-columns: 280px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .side,
+        .board-wrap {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(31, 53, 67, 0.12);
+        }
+
+        .side {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .board-wrap {
+            padding: 18px;
+            overflow: auto;
+        }
+
+        .ship-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ship-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #d5e1e8;
+            border-radius: 10px;
+            background: #f7fafc;
+            cursor: pointer;
+            text-align: left;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        }
+
+        .ship-btn img {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+        }
+
+        .ship-btn strong {
+            display: block;
+            font-size: 1.08rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+        }
+
+        .ship-btn.ship-1 strong {
+            color: #b42318;
+        }
+
+        .ship-btn.ship-2 strong {
+            color: #157347;
+        }
+
+        .ship-btn.ship-3 strong {
+            color: #1d4ed8;
+        }
+
+        .ship-btn small {
+            color: #334155;
+        }
+
+        .ship-btn:hover {
+            transform: translateY(-1px);
+            border-color: #7aa7c9;
+        }
+
+        .ship-btn.active {
+            background: #e8f3fb;
+            border-color: #4682b4;
+            box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.18);
+        }
+
+        .ship-btn.placed {
+            background: #eef8ee;
+            border-color: #8fce8f;
+        }
+
+        .actions,
+        .export-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        button,
+        .file-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            padding: 8px 12px 11px;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            background: rgba(70, 130, 180, 0.92);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25), 0 -3px 0 rgba(0, 0, 0, 0.2) inset;
+        }
+
+        button:hover,
+        .file-button:hover {
+            background: rgba(60, 120, 170, 0.96);
+        }
+
+        button:active,
+        .file-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 -1px 0 rgba(0, 0, 0, 0.18) inset;
+        }
+
+        button.ghost {
+            background: #6d8492;
+        }
+
+        button.danger {
+            background: #c75b5b;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+            transform: none;
+        }
+
+        .status {
+            min-height: 44px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #f3f7fa;
+            color: #35505e;
+            line-height: 1.5;
+        }
+
+        .status.ok {
+            background: #e8f7ea;
+            color: #216b32;
+        }
+
+        .status.warn {
+            background: #fff4d6;
+            color: #8a5a00;
+        }
+
+        .status.err {
+            background: #fdeaea;
+            color: #9b2c2c;
+        }
+
+        .file-field {
+            position: relative;
+            display: block;
+        }
+
+        .file-field input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .name-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .name-field input {
+            height: 40px;
+            padding: 0 10px;
+            border: 1px solid #c9d6de;
+            border-radius: 8px;
+            outline: none;
+            user-select: text;
+        }
+
+        .name-field input:focus {
+            border-color: #4682b4;
+            box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.15);
+        }
+
+        .board {
+            width: max-content;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 28px repeat(var(--SIZE), var(--cell));
+            grid-template-rows: 28px repeat(var(--SIZE), var(--cell));
+            gap: var(--gap);
+        }
+
+        .label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5b7380;
+            font-size: 0.85rem;
         }
 
         .cell {
-            background-color: #e0e0e0;
+            width: var(--cell);
+            height: var(--cell);
+            border-radius: 8px;
+            background: #d9e3ea;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background-color 0.3s;
-            font-size: 16px;
-            color: #333;
-            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
         }
 
-        button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            transition: background-color 0.3s;
+        .cell img {
+            width: 78%;
+            height: 78%;
+            object-fit: contain;
+            pointer-events: none;
         }
 
-        button:hover {
-            background-color: #0056b3;
+        .cell.value-1 { background: #ffd3d3; }
+        .cell.value-2 { background: #c9f3c9; }
+        .cell.value-3 { background: #cfd8ff; }
+        .cell.preview-ok { background: #9fd7ff; box-shadow: inset 0 0 0 2px #2f7fb8; }
+        .cell.preview-bad { background: #ffb4b4; box-shadow: inset 0 0 0 2px #c44545; }
+        .cell.ship-hover { box-shadow: inset 0 0 0 2px #f0a202; }
+
+        .keys {
+            color: #667882;
+            font-size: 0.82rem;
+            line-height: 1.6;
         }
 
-        /* 为不同数字的格子赋予不同的颜色 */
-        .value-0 {
-            background-color: #e0e0e0;
-        }
+        @media (max-width: 860px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
 
-        .value-1 {
-            background-color: #ffcccc;
-        }
-
-        .value-2 {
-            background-color: #ccffcc;
-        }
-
-        .value-3 {
-            background-color: #ccccff;
+            :root {
+                --cell: 36px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <h2 style="text-align: center; margin-bottom: 20px;">《海战棋》舰队布局配置文件生成器</h2>
-    <div id="grid" class="grid"></div>
-    <button onclick="generateJSON()">生成JSON</button>
+    <div class="app">
+        <h1>《海战棋》舰队布局生成器</h1>
+        <p class="hint">选择舰船后在棋盘上整艘放置。右键或 R 旋转方向，点击已放舰船可取回重放。</p>
+        <div class="workspace">
+            <aside class="side">
+                <div class="ship-list" id="ship-list"></div>
+                <div class="actions">
+                    <button type="button" id="rotate-btn">旋转方向</button>
+                    <button type="button" class="ghost" id="random-btn">随机布局</button>
+                    <button type="button" class="ghost" id="undo-btn">撤销</button>
+                    <button type="button" class="danger" id="clear-btn">清空棋盘</button>
+                </div>
+                <div class="status warn" id="status">请放置 1 号、2 号、3 号舰各一艘。</div>
+                <label class="name-field">
+                    导出文件名
+                    <input id="file-name" type="text" value="fleet.json" spellcheck="false">
+                </label>
+                <div class="export-row">
+                    <label class="file-field">
+                        <span class="file-button">导入 JSON</span>
+                        <input id="import-input" type="file" accept=".json,application/json">
+                    </label>
+                    <button type="button" id="copy-btn">复制 JSON</button>
+                </div>
+                <button type="button" id="export-btn">导出布局</button>
+                <div class="keys">快捷键：1 / 2 / 3 选舰，R 旋转，Esc 取消，Ctrl+Z 撤销</div>
+            </aside>
+            <section class="board-wrap">
+                <div class="board" id="board"></div>
+            </section>
+        </div>
+    </div>
     <script>
         const SIZE = 10;
-        let array = new Array(SIZE * SIZE).fill(0);
+        const SHIPS = [
+            { id: 1, length: 1, name: '1 号舰', desc: '1 格', img: 'resources/img/boat1.png' },
+            { id: 2, length: 2, name: '2 号舰', desc: '2 格', img: 'resources/img/boat2.png' },
+            { id: 3, length: 3, name: '3 号舰', desc: '3 格', img: 'resources/img/boat3.png' }
+        ];
 
-        // 创建网格并填充单元格
-        const grid = document.getElementById('grid');
-        for (let i = 0; i < SIZE * SIZE; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.innerText = array[i];
-            cell.onclick = function () {
-                // 点击单元格时，改变数组的值并更新显示
-                const newValue = (array[i] + 1) % 4; // 0, 1, 2, 3循环
-                array[i] = newValue;
-                cell.innerText = newValue;
-                cell.className = 'cell value-' + newValue; // 根据值赋予不同的类
-            };
-            grid.appendChild(cell);
+        let board = new Array(SIZE * SIZE).fill(0);
+        let selectedShip = 1;
+        let horizontal = true;
+        let hoverIndex = -1;
+        const history = [];
+
+        const boardEl = document.getElementById('board');
+        const shipListEl = document.getElementById('ship-list');
+        const statusEl = document.getElementById('status');
+        const exportBtn = document.getElementById('export-btn');
+        const cells = [];
+
+        function indexOf(x, y) {
+            return y * SIZE + x;
         }
 
-        function generateJSON() {
-            // 生成JSON字符串
-            const jsonString = JSON.stringify(array);
-            console.log(jsonString); // 在控制台打印JSON字符串
+        function inBounds(x, y) {
+            return x >= 0 && y >= 0 && x < SIZE && y < SIZE;
+        }
 
-            // 提示用户下载JSON文件
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
+        function isPlaced(id) {
+            return board.some(function (value) { return value === id; });
+        }
+
+        function snapshot() {
+            history.push(board.slice());
+            if (history.length > 30) { history.shift(); }
+        }
+
+        function getShipCells(start, id, isHorizontal) {
+            const length = id;
+            const x = start % SIZE;
+            const y = Math.floor(start / SIZE);
+            const cellsAt = [];
+            for (let i = 0; i < length; i++) {
+                const cx = isHorizontal ? x + i : x;
+                const cy = isHorizontal ? y : y + i;
+                if (!inBounds(cx, cy)) { return null; }
+                cellsAt.push(indexOf(cx, cy));
+            }
+            return cellsAt;
+        }
+
+        function canPlace(id, cellsAt) {
+            if (!cellsAt) { return false; }
+            return cellsAt.every(function (idx) {
+                return board[idx] === 0 || board[idx] === id;
+            });
+        }
+
+        function placeShip(id, cellsAt) {
+            removeShip(id, false);
+            cellsAt.forEach(function (idx) { board[idx] = id; });
+        }
+
+        function removeShip(id, record) {
+            if (record && isPlaced(id)) { snapshot(); }
+            board = board.map(function (value) { return value === id ? 0 : value; });
+        }
+
+        function isValidMap() {
+            let c1 = 0, c2 = 0, c3 = 0;
+            for (let i = 0; i < board.length; i++) {
+                if (board[i] === 1) c1++;
+                else if (board[i] === 2) c2++;
+                else if (board[i] === 3) c3++;
+            }
+            return c1 === 1 && c2 === 2 && c3 === 3;
+        }
+
+        function missingShips() {
+            return SHIPS.filter(function (ship) { return !isPlaced(ship.id); }).map(function (ship) { return ship.name; });
+        }
+
+        function setStatus(type, text) {
+            statusEl.className = 'status ' + type;
+            statusEl.textContent = text;
+        }
+
+        function updateStatus() {
+            const missing = missingShips();
+            const valid = isValidMap();
+            exportBtn.disabled = !valid;
+            if (valid) {
+                setStatus('ok', '布局完整，可以导出。当前方向：' + (horizontal ? '横向' : '纵向'));
+            } else if (missing.length) {
+                setStatus('warn', '还需放置：' + missing.join('、') + '。当前方向：' + (horizontal ? '横向' : '纵向'));
+            } else {
+                setStatus('err', '布局格数不正确，请清空后重新放置。');
+            }
+        }
+
+        function renderShips() {
+            shipListEl.innerHTML = '';
+            SHIPS.forEach(function (ship) {
+                const btn = document.createElement('button');
+                const placed = isPlaced(ship.id);
+                btn.type = 'button';
+                btn.className = 'ship-btn ship-' + ship.id + (selectedShip === ship.id ? ' active' : '') + (placed ? ' placed' : '');
+                btn.innerHTML = '<img src="' + ship.img + '" alt="' + ship.name + '"><span><strong>' + ship.name + '</strong><small>' + ship.desc + ' · ' + (placed ? '已放置，点击取回' : '未放置') + '</small></span>';
+                btn.onclick = function () {
+                    if (placed && selectedShip !== ship.id) {
+                        selectedShip = ship.id;
+                        removeShip(ship.id, true);
+                    } else if (placed && selectedShip === ship.id) {
+                        removeShip(ship.id, true);
+                    } else {
+                        selectedShip = ship.id;
+                    }
+                    render();
+                };
+                shipListEl.appendChild(btn);
+            });
+        }
+
+        function currentPreview() {
+            if (selectedShip == null || hoverIndex < 0) { return []; }
+            return getShipCells(hoverIndex, selectedShip, horizontal) || [];
+        }
+
+        function renderBoard() {
+            const preview = currentPreview();
+            const previewOk = canPlace(selectedShip, preview.length ? preview : null);
+            const hoverShip = hoverIndex >= 0 ? board[hoverIndex] : 0;
+            cells.forEach(function (cell, i) {
+                const value = board[i];
+                cell.className = 'cell' + (value ? ' value-' + value : '');
+                cell.innerHTML = value ? '<img src="resources/img/boat' + value + '.png" alt="' + value + '">' : '';
+                if (preview.indexOf(i) !== -1) {
+                    cell.classList.add(previewOk ? 'preview-ok' : 'preview-bad');
+                } else if (!selectedShip && hoverShip && value === hoverShip) {
+                    cell.classList.add('ship-hover');
+                }
+            });
+        }
+
+        function render() {
+            renderShips();
+            renderBoard();
+            updateStatus();
+        }
+
+        function buildBoard() {
+            boardEl.innerHTML = '';
+            boardEl.appendChild(document.createElement('div'));
+            for (let x = 0; x < SIZE; x++) {
+                const label = document.createElement('div');
+                label.className = 'label';
+                label.textContent = String(x + 1);
+                boardEl.appendChild(label);
+            }
+            for (let y = 0; y < SIZE; y++) {
+                const rowLabel = document.createElement('div');
+                rowLabel.className = 'label';
+                rowLabel.textContent = String(y + 1);
+                boardEl.appendChild(rowLabel);
+                for (let x = 0; x < SIZE; x++) {
+                    const i = indexOf(x, y);
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.onmouseenter = function () {
+                        hoverIndex = i;
+                        renderBoard();
+                    };
+                    cell.onmouseleave = function () {
+                        if (hoverIndex === i) { hoverIndex = -1; }
+                        renderBoard();
+                    };
+                    cell.onclick = function () {
+                        handlePlace(i);
+                    };
+                    boardEl.appendChild(cell);
+                    cells[i] = cell;
+                }
+            }
+        }
+
+        function handlePlace(i) {
+            const value = board[i];
+            if (selectedShip == null) {
+                if (value) {
+                    selectedShip = value;
+                    removeShip(value, true);
+                    render();
+                }
+                return;
+            }
+            const cellsAt = getShipCells(i, selectedShip, horizontal);
+            if (!canPlace(selectedShip, cellsAt)) {
+                setStatus('err', '这里放不下，请换个位置或旋转方向。');
+                return;
+            }
+            snapshot();
+            placeShip(selectedShip, cellsAt);
+            selectedShip = missingShips().length ? (SHIPS.find(function (ship) { return !isPlaced(ship.id); }) || {}).id || null : null;
+            render();
+        }
+
+        function rotate() {
+            horizontal = !horizontal;
+            render();
+        }
+
+        function clearBoard() {
+            if (board.every(function (value) { return value === 0; })) { return; }
+            snapshot();
+            board = new Array(SIZE * SIZE).fill(0);
+            selectedShip = 1;
+            render();
+        }
+
+        function undo() {
+            if (!history.length) { return; }
+            board = history.pop();
+            selectedShip = missingShips().length ? (SHIPS.find(function (ship) { return !isPlaced(ship.id); }) || {}).id || null : null;
+            render();
+        }
+
+        function randomize() {
+            snapshot();
+            board = new Array(SIZE * SIZE).fill(0);
+            [3, 2, 1].forEach(function (id) {
+                let placed = false;
+                for (let n = 0; n < 400 && !placed; n++) {
+                    const isH = Math.random() < 0.5;
+                    const start = Math.floor(Math.random() * SIZE * SIZE);
+                    const cellsAt = getShipCells(start, id, isH);
+                    if (canPlace(id, cellsAt)) {
+                        placeShip(id, cellsAt);
+                        placed = true;
+                    }
+                }
+            });
+            selectedShip = isValidMap() ? null : 1;
+            render();
+        }
+
+        function currentJSON() {
+            return JSON.stringify(board);
+        }
+
+        function exportJSON() {
+            if (!isValidMap()) {
+                setStatus('err', '布局尚未完整，不能导出。');
+                return;
+            }
+            let name = (document.getElementById('file-name').value || 'fleet.json').trim();
+            if (!/\.json$/i.test(name)) { name += '.json'; }
+            const blob = new Blob([currentJSON()], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'array.json';
+            a.download = name;
             document.body.appendChild(a);
             a.click();
             a.remove();
-            window.URL.revokeObjectURL(url);
+            URL.revokeObjectURL(url);
+            setStatus('ok', '已导出 ' + name);
         }
+
+        function copyJSON() {
+            const text = currentJSON();
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function () {
+                    setStatus('ok', 'JSON 已复制到剪贴板。');
+                }).catch(function () {
+                    window.prompt('复制下面的 JSON：', text);
+                });
+            } else {
+                window.prompt('复制下面的 JSON：', text);
+            }
+        }
+
+        function loadMap(data) {
+            if (!Array.isArray(data) || data.length !== SIZE * SIZE || data.some(function (v) { return ![0, 1, 2, 3].includes(v); })) {
+                setStatus('err', '文件格式不正确，需要 100 个 0-3 的整数。');
+                return;
+            }
+            snapshot();
+            board = data.map(function (v) { return Number(v); });
+            selectedShip = isValidMap() ? null : 1;
+            render();
+            setStatus(isValidMap() ? 'ok' : 'warn', isValidMap() ? '已导入完整布局。' : '已导入，但布局还不完整。');
+        }
+
+        document.getElementById('rotate-btn').onclick = rotate;
+        document.getElementById('random-btn').onclick = randomize;
+        document.getElementById('undo-btn').onclick = undo;
+        document.getElementById('clear-btn').onclick = clearBoard;
+        document.getElementById('export-btn').onclick = exportJSON;
+        document.getElementById('copy-btn').onclick = copyJSON;
+        document.getElementById('import-input').addEventListener('change', function (event) {
+            const file = event.target.files && event.target.files[0];
+            event.target.value = '';
+            if (!file) { return; }
+            const reader = new FileReader();
+            reader.onload = function () {
+                try {
+                    loadMap(JSON.parse(reader.result));
+                } catch (e) {
+                    setStatus('err', '无法解析该 JSON 文件。');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        document.addEventListener('contextmenu', function (event) {
+            event.preventDefault();
+            if (event.target.classList.contains('cell')) { rotate(); }
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.target && (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA')) { return; }
+            if (event.key === '1' || event.key === '2' || event.key === '3') {
+                selectedShip = Number(event.key);
+                if (isPlaced(selectedShip)) { removeShip(selectedShip, true); }
+                render();
+            } else if (event.key === 'r' || event.key === 'R') {
+                rotate();
+            } else if (event.key === 'Escape') {
+                selectedShip = null;
+                render();
+            } else if ((event.ctrlKey || event.metaKey) && (event.key === 'z' || event.key === 'Z')) {
+                event.preventDefault();
+                undo();
+            }
+        });
+
+        buildBoard();
+        render();
     </script>
 </body>
 
