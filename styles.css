@@ -14,7 +14,7 @@
 }
 
 :root {
-    --SIZE: 10;
+    --SIZE: 7;
 }
 
 body {
@@ -979,4 +979,78 @@ h1 {
     outline: none;
     min-width: 2em;
     caret-color: #333;
+}
+
+/* ---------- 新格式（编辑器 problems.json）的 Markdown 排版 ---------- */
+#question-content.md-content ul,
+#question-content.md-content ol {
+    display: inline-block;
+    text-align: left;
+    margin: 0.2em 0;
+    padding-left: 1.4em;
+}
+
+#question-content.md-content li { margin: 0.1em 0; }
+
+#question-content.md-content table {
+    margin: 0.35em auto;
+    border-collapse: collapse;
+    font-size: 0.72em;
+    line-height: 1.4;
+}
+
+#question-content.md-content th,
+#question-content.md-content td {
+    border: 1px solid rgba(0, 0, 0, 0.35);
+    padding: 0.12em 0.5em;
+    text-align: center;
+}
+
+#question-content.md-content th { background: rgba(0, 0, 0, 0.05); }
+
+#question-content.md-content blockquote {
+    margin: 0.3em auto;
+    padding: 0.1em 0.7em;
+    border-left: 3px solid rgba(0, 0, 0, 0.3);
+    text-align: left;
+    font-style: normal;
+    max-width: 90%;
+}
+
+#question-content.md-content h1,
+#question-content.md-content h2,
+#question-content.md-content h3 {
+    margin: 0.15em 0;
+    font-size: 1.02em;
+    line-height: 1.35;
+}
+
+#question-content.md-content p { margin: 0 0 0.25em; }
+#question-content.md-content p:last-child { margin-bottom: 0; }
+#question-content.md-content img {
+    max-width: 100%;
+    max-height: 160px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+.choice-content p { display: inline; margin: 0; }
+.choice-content img {
+    max-width: 100%;
+    max-height: 48px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+.choice-content ul,
+.choice-content ol {
+    display: inline-block;
+    text-align: left;
+    margin: 0;
+    padding-left: 1.2em;
+}
+
+/* 新格式选项可能包含公式、长文本或图片，避免撑破卡片 */
+.choice-content {
+    max-width: 100%;
+    overflow-wrap: anywhere;
 }

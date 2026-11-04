@@ -7,7 +7,7 @@
     <title>海战棋配置生成</title>
     <style>
         :root {
-            --SIZE: 10;
+            --SIZE: 7;
             --cell: 48px;
             --gap: 4px;
             --bg: #eef3f7;
@@ -349,7 +349,7 @@
         </div>
     </div>
     <script>
-        const SIZE = 10;
+        const SIZE = 7;
         const SHIPS = [
             { id: 1, length: 1, name: '1 号舰', desc: '1 格', img: 'resources/img/boat1.png' },
             { id: 2, length: 2, name: '2 号舰', desc: '2 格', img: 'resources/img/boat2.png' },
@@ -631,7 +631,7 @@
 
         function loadMap(data) {
             if (!Array.isArray(data) || data.length !== SIZE * SIZE || data.some(function (v) { return ![0, 1, 2, 3].includes(v); })) {
-                setStatus('err', '文件格式不正确，需要 100 个 0-3 的整数。');
+                setStatus('err', '文件格式不正确，需要 ' + SIZE * SIZE + ' 个 0-3 的整数。');
                 return;
             }
             snapshot();

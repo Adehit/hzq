@@ -1,4 +1,4 @@
-const SIZE = 10;
+const SIZE = 7;
 const EVENT_TITLE = '莆田第一中学第三届 3099 知识竞赛决赛';
 const CREDITS_DEV = 'Dev: [Github] Adehit';
 const CREDITS_ARTIST = 'Artist: Mojang';
@@ -28,6 +28,39 @@ function isValidProblems(problems) {
         if (problem.ans !== 'A' && problem.ans !== 'B' && problem.ans !== 'C' && problem.ans !== 'D') return false;
     }
     return true;
+}
+
+/**
+ * 读取题库文件（.json / .zip）。
+ * - 旧格式数组：原样返回，继续走 isValidProblems 校验
+ * - 编辑器新格式 { schema, questions } 或 problem.zip：由 QFormat 转成同样的运行时结构
+ */
+function readQuizFile(file) {
+    return new Promise(function (resolve, reject) {
+        if (!file) { reject(new Error('没有题库文件')); return; }
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            try {
+                const raw = event.target.result;
+                if (typeof QFormat === 'undefined') {
+                    resolve({ problems: JSON.parse(raw), format: 'legacy', count: 0 });
+                    return;
+                }
+                const bytes = new Uint8Array(raw);
+                let result;
+                if (QFormat.looksLikeZip(bytes)) {
+                    result = QFormat.readPack(bytes);
+                } else {
+                    result = QFormat.normalize(JSON.parse(QFormat.decodeText(bytes)));
+                }
+                resolve({ problems: result.questions, format: result.format, count: result.count });
+            } catch (e) {
+                reject(e);
+            }
+        };
+        reader.onerror = function () { reject(reader.error || new Error('读取文件失败')); };
+        reader.readAsArrayBuffer(file);
+    });
 }
 
 function readJsonFile(file) {
@@ -171,8 +204,11 @@ function generateQuestion() {
         return;
     }
     const question = _problems[_currentQuestionIndex];
-    const parts = formatQuestionParts(question.content, true);
-    document.getElementById('question-content').innerHTML = parts.html;
+    const isNewFormat = question._format === 'hzq-problem';
+    const parts = isNewFormat ? renderNewQuestion(question) : formatQuestionParts(question.content, true);
+    const contentEl = document.getElementById('question-content');
+    contentEl.innerHTML = parts.html;
+    contentEl.classList.toggle('md-content', isNewFormat);
     const imagesEl = document.getElementById('question-images');
     const bodyEl = document.querySelector('.question-body');
     if (imagesEl) {
@@ -328,6 +364,22 @@ function formatQuestion(content) {
 
 function formatChoice(content) {
     return formatQuestionParts(content, false).html;
+}
+
+function renderNewQuestion(question) {
+    if (typeof QFormat === 'undefined' || !QFormat.ensureRendered) {
+        return { html: escapeHtml(question.content), images: '' };
+    }
+    QFormat.ensureRendered(question);
+    return { html: question._html || '', images: '' };
+}
+
+function choiceHtml(question, option) {
+    if (question && question._format === 'hzq-problem' && typeof QFormat !== 'undefined') {
+        QFormat.ensureRendered(question);
+        return (question._optionHtml && question._optionHtml[option]) || QFormat.escapeHtml(question[option]);
+    }
+    return formatChoice(question[option]);
 }
 
 function shuffleQuestions() {
@@ -574,7 +626,7 @@ function skipQuestion() {
 
 function updateOptions(question) {
     ['A', 'B', 'C', 'D'].forEach(option => {
-        document.getElementById(`cc-${option}`).innerHTML = formatChoice(question[option]);
+        document.getElementById(`cc-${option}`).innerHTML = choiceHtml(question, option);
     });
 }
 
@@ -641,9 +693,9 @@ document.onkeydown = function (event) {
         nowChoosePanel = 'B';
         nowChoosePos = [-1, -1];
         refreshMaps();
-    } else if ((event.key <= '9' && event.key >= '1') || event.key === '0') {
+    } else if (event.key.length === 1 && event.key >= '1' && event.key <= String(SIZE)) {
         if (nowChoosePanel === '') { return; }
-        const pos = event.key === '0' ? 9 : parseInt(event.key) - 1;
+        const pos = parseInt(event.key, 10) - 1;
         if (nowChoosePos[0] === -1) {
             nowChoosePos[0] = pos;
         } else {
@@ -847,8 +899,9 @@ function saveSettings() {
     if (!quizFile) { cocoMessage.warning("题库文件未成功读取！"); return; }
     if (!map1File) { cocoMessage.warning("舰队布局 1 未成功读取！"); return; }
     if (!map2File) { cocoMessage.warning("舰队布局 2 未成功读取！"); return; }
-    Promise.all([readJsonFile(quizFile), readJsonFile(map1File), readJsonFile(map2File)]).then(function (data) {
-        if (!isValidProblems(data[0])) {
+    Promise.all([readQuizFile(quizFile), readJsonFile(map1File), readJsonFile(map2File)]).then(function (data) {
+        const quiz = data[0];
+        if (!quiz || !isValidProblems(quiz.problems)) {
             cocoMessage.error("题库格式不正确");
             return;
         }
@@ -858,13 +911,17 @@ function saveSettings() {
         }
         _name1 = name1;
         _name2 = name2;
-        _problems = data[0];
+        _problems = quiz.problems;
         _map1 = data[1];
         _map2 = data[2];
-        cocoMessage.success("配置成功！");
+        const note = quiz.format === 'hzq-problem'
+            ? '配置成功！（' + quiz.count + ' 题 · 编辑器新格式）'
+            : '配置成功！';
+        cocoMessage.success(note);
         closeSettings();
-    }).catch(function () {
-        cocoMessage.error("文件格式不正确");
+    }).catch(function (e) {
+        const detail = e && e.message ? String(e.message) : '';
+        cocoMessage.error(detail ? '题库读取失败：' + detail : "文件格式不正确");
     });
 }
 
